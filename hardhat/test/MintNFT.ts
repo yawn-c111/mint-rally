@@ -41,3 +41,24 @@ describe("MintNFT", function () {
     console.log(currentNum);
   });
 });
+
+describe("test", () => {
+  it("return success message", async () => {
+    const eventManagerContractFactory = await ethers.getContractFactory(
+      "EventManager"
+    );
+
+    const eventManagerContract = await eventManagerContractFactory.deploy();
+    const eventManager = await eventManagerContract.deployed();
+
+    console.log(eventManager);
+
+
+    const MintNFT = await ethers.getContractFactory("MintNFT");
+    const mintNFT = await MintNFT.deploy();
+    await mintNFT.deployed();
+
+    const testResult = await mintNFT.callTest();
+    console.log(testResult);
+  });
+});

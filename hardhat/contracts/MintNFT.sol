@@ -6,6 +6,12 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
+import "./Event.sol";
+
+interface IEventRecord {
+    function testConnection() external pure returns (string memory);
+}
+
 contract MintNFT is ERC721Enumerable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
@@ -22,7 +28,13 @@ contract MintNFT is ERC721Enumerable {
 
     mapping(uint256 => ParticipateNFTAttributes) public attributesOfNFT;
 
-    constructor() ERC721("MintRally", "MR") {}
+    // address _eventContractAddress = 0x2e3C5d723E15A33a6fEa343A96b3051310919dD7;
+    // address public eventContractAddress;
+
+    constructor() ERC721("MintRally", "MR") {
+        // eventContractAddress = _eventContractAddress;
+        // eventContractAddress = 0x2e3C5d723E15A33a6fEa343A96b3051310919dD7;
+    }
 
     function mintParticipateNFT(
         string memory groupId,
@@ -118,5 +130,18 @@ contract MintNFT is ERC721Enumerable {
             );
         }
         return _tokenIds.current();
+    }
+
+    // EventManager public eventManager;
+
+    address _eventContractAddress = 0x2e3C5d723E15A33a6fEa343A96b3051310919dD7;
+    IEventRecord eventManager = IEventRecord(_eventContractAddress);
+
+    function callTest() external returns (string memory) {
+        // address _eventContractAddress = eventContractAddress;
+        // console.log("test");
+        console.log("eventContractAddress %s", _eventContractAddress);
+        string memory result = eventManager.testConnection();
+        return result;
     }
 }
