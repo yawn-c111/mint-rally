@@ -54,7 +54,7 @@ contract MintNFT is ERC721Enumerable, Ownable {
         uint256 requiredParticipateCount;
     }
 
-    mapping(uint256 => ParticipateNFTAttributes) public attributesOfNFT;
+    mapping(uint256 => ParticipateNFTAttributes) private attributesOfNFT;
     mapping(uint256 => ParticipateNFTAttributes[]) private groupsNFTAttributes;
     mapping(bytes32 => bool) private mintedOnEvent;
     mapping(bytes32 => uint256) private groupMintCount;
@@ -121,20 +121,6 @@ contract MintNFT is ERC721Enumerable, Ownable {
         returns (bytes32)
     {
         return keccak256(abi.encodePacked(_address, _id));
-    }
-
-    function countGroupParticipation(uint256 _groupId)
-        public
-        view
-        returns (uint256)
-    {
-        bytes32 hash = getHashByAddressAndId(msg.sender, _groupId);
-        return groupMintCount[hash];
-    }
-
-    function isMinted(uint256 _eventId) public view returns (bool) {
-        bytes32 hash = getHashByAddressAndId(msg.sender, _eventId);
-        return mintedOnEvent[hash];
     }
 
     function getOwnedNFTs()
