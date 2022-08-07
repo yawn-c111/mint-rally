@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -34,6 +35,7 @@ interface IEventManager {
 }
 
 contract MintNFT is ERC721Enumerable, Ownable {
+    using SafeMath for uint256;
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
@@ -54,6 +56,8 @@ contract MintNFT is ERC721Enumerable, Ownable {
 
     mapping(uint256 => ParticipateNFTAttributes) public attributesOfNFT;
     mapping(uint256 => ParticipateNFTAttributes[]) private groupsNFTAttributes;
+    mapping(bytes32 => bool) private mintedOnEvent;
+    mapping(bytes32 => uint256) private groupMintCount;
 
     constructor() ERC721("MintRally", "MR") {}
 
@@ -75,22 +79,14 @@ contract MintNFT is ERC721Enumerable, Ownable {
             _eventId
         );
 
-        ParticipateNFTAttributes[] memory ownedNFTs = listNFTsByAddress(
-            msg.sender
-        );
-        bool firstMintOnEvent = true;
-        uint256 countOwnedGroupNFTs = 0;
-        for (uint256 index = 0; index < ownedNFTs.length; index++) {
-            ParticipateNFTAttributes memory nft = ownedNFTs[index];
-            if (nft.groupId == _groupId && nft.eventId == _eventId) {
-                firstMintOnEvent = false;
-                break;
-            }
-            if (nft.groupId == _groupId) {
-                countOwnedGroupNFTs++;
-            }
-        }
-        require(firstMintOnEvent, "already minted NFT on event");
+        bytes32 addressEventHash = getHashByAddressAndId(msg.sender, _eventId);
+        bool firstMintOnEvent = mintedOnEvent[addressEventHash];
+        mintedOnEvent[addressEventHash] = true;
+        require(!firstMintOnEvent, "already minted NFT on event");
+
+        bytes32 addressGroupHash = getHashByAddressAndId(msg.sender, _groupId);
+        uint256 countOwnedGroupNFTs = groupMintCount[addressGroupHash];
+        groupMintCount[addressGroupHash] = countOwnedGroupNFTs.add(1);
 
         bool minted = false;
         ParticipateNFTAttributes memory defaultNFT;
@@ -103,6 +99,7 @@ contract MintNFT is ERC721Enumerable, Ownable {
             if (gp.requiredParticipateCount == 0) {
                 defaultNFT = gp;
             }
+
             if (gp.requiredParticipateCount == countOwnedGroupNFTs) {
                 attributesOfNFT[_tokenIds.current()] = gp;
                 _safeMint(msg.sender, _tokenIds.current());
@@ -118,15 +115,37 @@ contract MintNFT is ERC721Enumerable, Ownable {
         return mintedTokenURI;
     }
 
-    function listNFTsByAddress(address _address)
-        internal
+    function getHashByAddressAndId(address _address, uint256 _id)
+        private
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(_address, _id));
+    }
+
+    function countGroupParticipation(uint256 _groupId)
+        public
+        view
+        returns (uint256)
+    {
+        bytes32 hash = getHashByAddressAndId(msg.sender, _groupId);
+        return groupMintCount[hash];
+    }
+
+    function isMinted(uint256 _eventId) public view returns (bool) {
+        bytes32 hash = getHashByAddressAndId(msg.sender, _eventId);
+        return mintedOnEvent[hash];
+    }
+
+    function getOwnedNFTs()
+        public
         view
         returns (ParticipateNFTAttributes[] memory)
     {
-        uint256 tokenCount = balanceOf(_address);
+        uint256 tokenCount = balanceOf(msg.sender);
         uint256[] memory tokenIds = new uint256[](tokenCount);
         for (uint256 i = 0; i < tokenCount; i++) {
-            tokenIds[i] = tokenOfOwnerByIndex((_address), i);
+            tokenIds[i] = tokenOfOwnerByIndex((msg.sender), i);
         }
 
         ParticipateNFTAttributes[]
@@ -137,16 +156,6 @@ contract MintNFT is ERC721Enumerable, Ownable {
             uint256 id = tokenIds[i];
             holdingNFTsAttributes[i] = attributesOfNFT[id];
         }
-        return holdingNFTsAttributes;
-    }
-
-    function getOwnedNFTs()
-        public
-        view
-        returns (ParticipateNFTAttributes[] memory)
-    {
-        ParticipateNFTAttributes[]
-            memory holdingNFTsAttributes = listNFTsByAddress(msg.sender);
         return holdingNFTsAttributes;
     }
 

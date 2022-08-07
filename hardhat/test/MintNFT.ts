@@ -152,7 +152,6 @@ describe("MintNFT", function () {
           "hackdays1secret"
         );
       await mintTxn1.wait();
-
       const mintTxn2 = await mintNFT
         .connect(owner2)
         .mintParticipateNFT(
@@ -165,6 +164,7 @@ describe("MintNFT", function () {
 
     it("mint different NFT by participate count", async () => {
       const holdingNFTs = await mintNFT.connect(owner2).getOwnedNFTs();
+      console.log(holdingNFTs);
       expect(holdingNFTs[0].image).equal("https://i.imgur.com/TZEhCTX.png");
       expect(holdingNFTs[0].description).equal("this is common NFT");
       expect(holdingNFTs[1].image).equal("https://i.imgur.com/TZEhCTXaaa.png");

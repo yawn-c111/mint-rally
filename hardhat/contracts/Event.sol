@@ -140,7 +140,7 @@ contract EventManager is Ownable {
                 _isGroupOwner = true;
             }
         }
-        require(_isGroupOwner, "Only group owners can create event records");
+        require(_isGroupOwner, "need to group owner");
 
         uint256 _newEventId = _eventRecordIds.current();
         bytes memory hexSecretPhrase = bytes(_secretPhrase);
