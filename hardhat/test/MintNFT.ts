@@ -3,6 +3,7 @@ import { ethers, upgrades } from "hardhat";
 import { MintNFT, EventManager } from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
+import decorder from "ethereum-input-data-decoder";
 
 // ToDo requiredParticipateCountに重複がある場合エラーになってしまう。
 const attributes = [
