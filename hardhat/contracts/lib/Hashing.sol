@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 import "./Pairing.sol";
 import "../IZkVerifier.sol";
+import "hardhat/console.sol";
 
 library Hashing {
     function hashingAddressUint256(address _address, uint256 _id)

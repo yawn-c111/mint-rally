@@ -25,7 +25,7 @@ contract Verifier {
     }
 
     VerifyingKeyPoint private verifyingKeyPoint;
-    mapping(bytes32 => bool) usedProof;
+    mapping(bytes32 => bool) internal usedProof;
 
     constructor(
         uint256[2][2] memory _h,

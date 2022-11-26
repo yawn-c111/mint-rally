@@ -117,9 +117,9 @@ describe("ZKP", () => {
     );
     const pass1 = await verifierContract.verifyTx(proof.proof);
     expect(pass1).equal(true);
+    await verifierContract.recordUsedProof(proof.proof);
 
     const pass1Duplicate = await verifierContract.verifyTx(proof.proof);
-    console.log(proof.proof);
     expect(pass1Duplicate).equal(false);
 
     const proof2: any = zokratesProvider.generateProof(
