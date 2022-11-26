@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { initialize } from "zokrates-js";
 import { ethers } from "hardhat";
+import { Verifier } from "../typechain";
 const verifierABI = require("../artifacts/contracts/ZkVerifier.sol/Verifier.json");
 
 const createProvider = async () => {
@@ -35,7 +36,7 @@ const generateHash = async (a: string, b: string, c: string, d: string) => {
   return JSON.parse(output);
 };
 
-const createHackCheckArtifacts = async (hash1: string, hash2: string) => {
+const createHashCheckArtifacts = async (hash1: string, hash2: string) => {
   const zokratesProvider = await createProvider();
   const hashCheckSource = `
       import "hashes/sha256/512bitPacked" as sha256packed;
@@ -56,7 +57,7 @@ describe("ZKP", () => {
     const zokratesProvider = await createProvider();
     const [hash1, hash2] = await generateHash("12", "12", "12", "12");
 
-    const checkHashArtifacts_organizer = await createHackCheckArtifacts(
+    const checkHashArtifacts_organizer = await createHashCheckArtifacts(
       hash1,
       hash2
     );
@@ -75,18 +76,15 @@ describe("ZKP", () => {
 
     const [eventOwner, participant] = await ethers.getSigners();
 
-    console.log(vk);
-    const ver = zokratesProvider.exportSolidityVerifier(vk);
-    console.log(ver);
-
     const deployVerifier = await verifierFactoryContract.deploy(
       eventOwner.address,
       1,
-      vk.alpha,
-      vk.beta,
-      vk.gamma,
-      vk.delta,
-      vk.gamma_abc[0]
+      vk.h,
+      vk.g_alpha,
+      vk.h_beta,
+      vk.g_gamma,
+      vk.h_gamma,
+      vk.query
     );
     await deployVerifier.wait();
 
@@ -95,7 +93,7 @@ describe("ZKP", () => {
       1
     );
 
-    const checkHashArtifacts_participant = await createHackCheckArtifacts(
+    const checkHashArtifacts_participant = await createHashCheckArtifacts(
       hash1,
       hash2
     );
@@ -106,28 +104,32 @@ describe("ZKP", () => {
       ["12", "12", "12", "12"]
     );
 
+    const verifierContract = new ethers.Contract(
+      verifierAddr,
+      verifierABI.abi,
+      participant
+    ) as Verifier;
+
     const proof: any = zokratesProvider.generateProof(
       checkHashArtifacts_participant.program,
       witness,
       pk
     );
-
-    const verifierContract = new ethers.Contract(
-      verifierAddr,
-      verifierABI.abi,
-      participant
-    );
     const pass1 = await verifierContract.verifyTx(proof.proof);
+    expect(pass1).equal(true);
 
+    const pass1Duplicate = await verifierContract.verifyTx(proof.proof);
     console.log(proof.proof);
+    expect(pass1Duplicate).equal(false);
 
     const proof2: any = zokratesProvider.generateProof(
       checkHashArtifacts_participant.program,
       witness,
       pk
     );
-    console.log(proof2.proof);
-
-    expect(pass1).equal(true);
+    const pass2 = await verifierContract.verifyTx(proof2.proof);
+    expect(pass2).equal(true);
   });
 });
+
+// 関係の無い場所からrecordUsedProofを叩くと失敗するテスト書く

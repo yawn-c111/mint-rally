@@ -1,14 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 // This file is LGPL3 Licensed
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.4;
 
-/**
- * @title Elliptic curve operations on twist points for alt_bn128
- * @author Mustafa Al-Bassam (mus@musalbas.com)
- * @dev Homepage: https://github.com/musalbas/solidity-BN256G2
- */
-
-library BN256G2 {
+library Pairing {
     uint256 internal constant FIELD_MODULUS =
         0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47;
     uint256 internal constant TWISTBX =
@@ -476,16 +470,7 @@ library BN256G2 {
             d = d / 2;
         }
     }
-}
-// This file is MIT Licensed.
-//
-// Copyright 2017 Christian Reitwiessner
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-pragma solidity ^0.8.0;
 
-library Pairing {
     struct G1Point {
         uint256 X;
         uint256 Y;
@@ -553,7 +538,7 @@ library Pairing {
         view
         returns (G2Point memory r)
     {
-        (r.X[0], r.X[1], r.Y[0], r.Y[1]) = BN256G2.ECTwistAdd(
+        (r.X[0], r.X[1], r.Y[0], r.Y[1]) = ECTwistAdd(
             p1.X[0],
             p1.X[1],
             p1.Y[0],
@@ -646,26 +631,6 @@ library Pairing {
         return pairing(p1, p2);
     }
 
-    /// Convenience method for a pairing check for three pairs.
-    function pairingProd3(
-        G1Point memory a1,
-        G2Point memory a2,
-        G1Point memory b1,
-        G2Point memory b2,
-        G1Point memory c1,
-        G2Point memory c2
-    ) internal view returns (bool) {
-        G1Point[] memory p1 = new G1Point[](3);
-        G2Point[] memory p2 = new G2Point[](3);
-        p1[0] = a1;
-        p1[1] = b1;
-        p1[2] = c1;
-        p2[0] = a2;
-        p2[1] = b2;
-        p2[2] = c2;
-        return pairing(p1, p2);
-    }
-
     /// Convenience method for a pairing check for four pairs.
     function pairingProd4(
         G1Point memory a1,
@@ -688,160 +653,5 @@ library Pairing {
         p2[2] = c2;
         p2[3] = d2;
         return pairing(p1, p2);
-    }
-}
-
-contract Verifier {
-    using Pairing for *;
-    struct VerifyingKey {
-        Pairing.G2Point h;
-        Pairing.G1Point g_alpha;
-        Pairing.G2Point h_beta;
-        Pairing.G1Point g_gamma;
-        Pairing.G2Point h_gamma;
-        Pairing.G1Point[] query;
-    }
-    struct Proof {
-        Pairing.G1Point a;
-        Pairing.G2Point b;
-        Pairing.G1Point c;
-    }
-
-    struct VerifyingKeyPoint {
-        uint256[2][2] h;
-        uint256[2] gAlpha;
-        uint256[2][2] hBeta;
-        uint256[2] gGamma;
-        uint256[2][2] hGamma;
-        uint256[2] query;
-    }
-
-    VerifyingKeyPoint private verifyingKeyPoint;
-
-    constructor(
-        uint256[2][2] memory _h,
-        uint256[2] memory _gAlpha,
-        uint256[2][2] memory _hBeta,
-        uint256[2] memory _gGamma,
-        uint256[2][2] memory _hGamma,
-        uint256[2] memory _query
-    ) {
-        verifyingKeyPoint = VerifyingKeyPoint({
-            h: _h,
-            gAlpha: _gAlpha,
-            hBeta: _hBeta,
-            gGamma: _gGamma,
-            hGamma: _hGamma,
-            query: _query
-        });
-    }
-
-    function verifyingKey() internal view returns (VerifyingKey memory vk) {
-        vk.h = Pairing.G2Point(
-            [
-                uint256(verifyingKeyPoint.h[0][0]),
-                uint256(verifyingKeyPoint.h[0][1])
-            ],
-            [
-                uint256(verifyingKeyPoint.h[1][0]),
-                uint256(verifyingKeyPoint.h[1][1])
-            ]
-        );
-        vk.g_alpha = Pairing.G1Point(
-            uint256(verifyingKeyPoint.gAlpha[0]),
-            uint256(verifyingKeyPoint.gAlpha[1])
-        );
-        vk.h_beta = Pairing.G2Point(
-            [
-                uint256(verifyingKeyPoint.hBeta[0][0]),
-                uint256(verifyingKeyPoint.hBeta[0][1])
-            ],
-            [
-                uint256(verifyingKeyPoint.hBeta[1][0]),
-                uint256(verifyingKeyPoint.hBeta[1][1])
-            ]
-        );
-        vk.g_gamma = Pairing.G1Point(
-            uint256(verifyingKeyPoint.gGamma[0]),
-            uint256(verifyingKeyPoint.gGamma[1])
-        );
-        vk.h_gamma = Pairing.G2Point(
-            [
-                uint256(verifyingKeyPoint.hGamma[0][0]),
-                uint256(verifyingKeyPoint.hGamma[0][1])
-            ],
-            [
-                uint256(verifyingKeyPoint.hGamma[1][0]),
-                uint256(verifyingKeyPoint.hGamma[1][1])
-            ]
-        );
-        vk.query = new Pairing.G1Point[](1);
-        vk.query[0] = Pairing.G1Point(
-            uint256(
-                0x1b08e251f0ed8df317679e760270cbc7b72b7fffdcf2291cd040d74299631de9
-            ),
-            uint256(
-                0x164775b43acce4e991e645425d126fee752f9fba4de1c6fbbd5ac78c55d7475f
-            )
-        );
-    }
-
-    function verify(uint256[] memory input, Proof memory proof)
-        internal
-        view
-        returns (uint256)
-    {
-        uint256 snark_scalar_field = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
-        VerifyingKey memory vk = verifyingKey();
-        require(input.length + 1 == vk.query.length);
-        // Compute the linear combination vk_x
-        Pairing.G1Point memory vk_x = Pairing.G1Point(0, 0);
-        for (uint256 i = 0; i < input.length; i++) {
-            require(input[i] < snark_scalar_field);
-            vk_x = Pairing.addition(
-                vk_x,
-                Pairing.scalar_mul(vk.query[i + 1], input[i])
-            );
-        }
-        vk_x = Pairing.addition(vk_x, vk.query[0]);
-        /**
-         * e(A*G^{alpha}, B*H^{beta}) = e(G^{alpha}, H^{beta}) * e(G^{psi}, H^{gamma})
-         *                              * e(C, H)
-         * where psi = \sum_{i=0}^l input_i pvk.query[i]
-         */
-        if (
-            !Pairing.pairingProd4(
-                vk.g_alpha,
-                vk.h_beta,
-                vk_x,
-                vk.h_gamma,
-                proof.c,
-                vk.h,
-                Pairing.negate(Pairing.addition(proof.a, vk.g_alpha)),
-                Pairing.addition(proof.b, vk.h_beta)
-            )
-        ) return 1;
-        /**
-         * e(A, H^{gamma}) = e(G^{gamma}, B)
-         */
-        if (
-            !Pairing.pairingProd2(
-                proof.a,
-                vk.h_gamma,
-                Pairing.negate(vk.g_gamma),
-                proof.b
-            )
-        ) return 2;
-        return 0;
-    }
-
-    function verifyTx(Proof memory proof) public view returns (bool r) {
-        uint256[] memory inputValues = new uint256[](0);
-
-        if (verify(inputValues, proof) == 0) {
-            return true;
-        } else {
-            return false;
-        }
     }
 }

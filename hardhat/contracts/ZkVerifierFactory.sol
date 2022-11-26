@@ -10,19 +10,21 @@ contract ZkVerifierFactory {
     function deploy(
         address _ownerAddr,
         uint256 _eventId,
-        uint256[2] memory _alpha,
-        uint256[2][2] memory _beta,
-        uint256[2][2] memory _gamma,
-        uint256[2][2] memory _delta,
-        uint256[2] memory _gamma_abc
+        uint256[2][2] memory _h,
+        uint256[2] memory _gAlpha,
+        uint256[2][2] memory _hBeta,
+        uint256[2] memory _gGamma,
+        uint256[2][2] memory _hGamma,
+        uint256[2][1] memory _query
     ) public {
         bytes32 key = Hashing.hashingAddressUint256(_ownerAddr, _eventId);
         Verifier newVerifier = new Verifier(
-            _alpha,
-            _beta,
-            _gamma,
-            _delta,
-            _gamma_abc
+            _h,
+            _gAlpha,
+            _hBeta,
+            _gGamma,
+            _hGamma,
+            _query
         );
         eventVerifierAddress[key] = address(newVerifier);
     }
