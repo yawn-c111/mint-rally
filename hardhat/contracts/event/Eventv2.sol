@@ -1,74 +1,57 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "./IMintNFT.sol";
+import "./Event.sol";
+import "../interface/IEvent.sol";
+import "../interface/IZkVerifier.sol";
+import "../interface/IMintNFTv2.sol";
 
-contract EventManager is OwnableUpgradeable {
-    struct Group {
-        uint256 groupId;
-        address ownerAddress;
-        string name;
-    }
-
-    struct EventRecord {
-        uint256 eventRecordId;
-        uint256 groupId;
-        string name;
-        string description;
-        string date;
-        bool useMtx;
-    }
-
+contract EventManagerV2 is EventManager {
     using Counters for Counters.Counter;
 
-    Counters.Counter private _eventRecordIds;
-    Counters.Counter private _groupIds;
+    Counters.Counter internal _eventRecordIds;
+    Counters.Counter internal _groupIds;
 
-    Group[] private groups;
-    EventRecord[] private eventRecords;
+    Group[] internal groups;
+    EventRecord[] internal eventRecords;
 
-    mapping(address => uint256[]) private ownGroupIds;
-    mapping(uint256 => uint256[]) private eventIdsByGroupId;
-    mapping(uint256 => uint256) private groupIdByEventId;
+    mapping(address => uint256[]) internal ownGroupIds;
+    mapping(uint256 => uint256[]) internal eventIdsByGroupId;
+    mapping(uint256 => uint256) internal groupIdByEventId;
 
     // Mint nft contract address
-    address private mintNFTAddr;
+    address internal mintNFTAddr;
     // Relayer address for meta transaction
-    address private relayerAddr;
+    address internal relayerAddr;
     // price for mtx per mint. required gas * margin * gas limit multipler
-    uint256 private mtxPrice;
+    uint256 internal mtxPrice;
     // max mint limit
-    uint256 private maxMintLimit;
+    uint256 internal maxMintLimit;
 
-    function setMintNFTAddr(address _mintNftAddr) public onlyOwner {
+    function setMintNFTAddr(address _mintNftAddr) public override onlyOwner {
         require(_mintNftAddr != address(0), "mint nft address is blank");
         mintNFTAddr = _mintNftAddr;
     }
 
-    function setRelayerAddr(address _relayerAddr) public onlyOwner {
+    function setRelayerAddr(address _relayerAddr) public override onlyOwner {
         require(_relayerAddr != address(0), "relayer address is blank");
         relayerAddr = _relayerAddr;
     }
 
-    function setMtxPrice(uint256 _price) public onlyOwner {
+    function setMtxPrice(uint256 _price) public override onlyOwner {
         mtxPrice = _price;
     }
 
-    function setMaxMintLimit(uint256 _mintLimit) public onlyOwner {
+    function setMaxMintLimit(uint256 _mintLimit) public override onlyOwner {
         require(_mintLimit != 0, "mint limit is 0");
         maxMintLimit = _mintLimit;
     }
-
-    event CreatedGroupId(address indexed owner, uint256 groupId);
 
     function initialize(
         address _relayerAddr,
         uint256 _mtxPrice,
         uint256 _maxMintLimit
-    ) public initializer {
+    ) public override initializer {
         __Ownable_init();
         _groupIds.increment();
         _eventRecordIds.increment();
@@ -77,7 +60,7 @@ contract EventManager is OwnableUpgradeable {
         setMaxMintLimit(_maxMintLimit);
     }
 
-    function createGroup(string memory _name) external {
+    function createGroup(string memory _name) external override {
         uint256 _newGroupId = _groupIds.current();
         _groupIds.increment();
 
@@ -89,14 +72,14 @@ contract EventManager is OwnableUpgradeable {
         emit CreatedGroupId(msg.sender, _newGroupId);
     }
 
-    function getGroups() public view returns (Group[] memory) {
+    function getGroups() public view override returns (Group[] memory) {
         uint256 _numberOfGroups = groups.length;
         Group[] memory _groups = new Group[](_numberOfGroups);
         _groups = groups;
         return _groups;
     }
 
-    function getOwnGroups() public view returns (Group[] memory) {
+    function getOwnGroups() public view override returns (Group[] memory) {
         uint256 _numberOfOwnGroups = ownGroupIds[msg.sender].length;
         uint256 _numberOfAllGroups = groups.length;
 
@@ -118,7 +101,7 @@ contract EventManager is OwnableUpgradeable {
         string memory _date,
         uint256 _mintLimit,
         bool _useMtx,
-        string memory _secretPhrase,
+        IZkVerifier.VerifyingKeyPoint memory _verifyingKeyPoint,
         IMintNFT.NFTAttribute[] memory _eventNFTAttributes
     ) external payable {
         require(
@@ -155,12 +138,11 @@ contract EventManager is OwnableUpgradeable {
             })
         );
 
-        bytes32 encryptedSecretPhrase = keccak256(bytes(_secretPhrase));
-        IMintNFT _mintNFT = IMintNFT(mintNFTAddr);
+        IMintNFTV2 _mintNFT = IMintNFTV2(mintNFTAddr);
         _mintNFT.setEventInfo(
             _newEventId,
             _mintLimit,
-            encryptedSecretPhrase,
+            _verifyingKeyPoint,
             _eventNFTAttributes
         );
 
@@ -168,7 +150,12 @@ contract EventManager is OwnableUpgradeable {
         groupIdByEventId[_newEventId] = _groupId;
     }
 
-    function getEventRecords() public view returns (EventRecord[] memory) {
+    function getEventRecords()
+        public
+        view
+        override
+        returns (EventRecord[] memory)
+    {
         uint256 _numberOfEventRecords = eventRecords.length;
         // create array of events
         EventRecord[] memory _eventRecords = new EventRecord[](
@@ -181,6 +168,7 @@ contract EventManager is OwnableUpgradeable {
     function getEventById(uint256 _eventId)
         external
         view
+        override
         returns (EventRecord memory)
     {
         uint256 _eventRecordIndex = _eventId - 1;

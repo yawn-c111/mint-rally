@@ -68,30 +68,11 @@ describe("ZKP", () => {
     const vk: any = keypair.vk;
     const pk: any = keypair.pk;
 
-    const verifierFactoryFactory = await ethers.getContractFactory(
-      "ZkVerifierFactory"
-    );
-    const verifierFactoryContract = await verifierFactoryFactory.deploy();
-    await verifierFactoryContract.deployed();
+    const verifierContractFactory = await ethers.getContractFactory("Verifier");
+    const verifierContract = await verifierContractFactory.deploy();
+    await verifierContract.deployed();
 
-    const [eventOwner, participant] = await ethers.getSigners();
-
-    const deployVerifier = await verifierFactoryContract.deploy(
-      eventOwner.address,
-      1,
-      vk.h,
-      vk.g_alpha,
-      vk.h_beta,
-      vk.g_gamma,
-      vk.h_gamma,
-      vk.query
-    );
-    await deployVerifier.wait();
-
-    const verifierAddr = await verifierFactoryContract.getVerifierAddress(
-      eventOwner.address,
-      1
-    );
+    await verifierContract.setVerifyingKeyPoint(vk, 1);
 
     const checkHashArtifacts_participant = await createHashCheckArtifacts(
       hash1,
@@ -103,31 +84,28 @@ describe("ZKP", () => {
       checkHashArtifacts_participant,
       ["12", "12", "12", "12"]
     );
-
-    const verifierContract = new ethers.Contract(
-      verifierAddr,
-      verifierABI.abi,
-      participant
-    ) as Verifier;
-
     const proof: any = zokratesProvider.generateProof(
       checkHashArtifacts_participant.program,
       witness,
       pk
     );
-    const pass1 = await verifierContract.verifyTx(proof.proof);
+    const pass1 = await verifierContract.verifyTx(proof.proof, 1);
     expect(pass1).equal(true);
     await verifierContract.recordUsedProof(proof.proof);
 
-    const pass1Duplicate = await verifierContract.verifyTx(proof.proof);
+    const pass1Duplicate = await verifierContract.verifyTx(proof.proof, 1);
     expect(pass1Duplicate).equal(false);
 
+    const { witness: witness2 } = zokratesProvider.computeWitness(
+      checkHashArtifacts_participant,
+      ["12", "12", "12", "12"]
+    );
     const proof2: any = zokratesProvider.generateProof(
       checkHashArtifacts_participant.program,
-      witness,
+      witness2,
       pk
     );
-    const pass2 = await verifierContract.verifyTx(proof2.proof);
+    const pass2 = await verifierContract.verifyTx(proof2.proof, 1);
     expect(pass2).equal(true);
   });
 });

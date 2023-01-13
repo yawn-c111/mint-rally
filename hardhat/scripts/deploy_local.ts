@@ -7,7 +7,9 @@ import { writeFileSync } from "fs";
 import { ethers, upgrades } from "hardhat";
 import { MintNFT, EventManager } from "../typechain";
 
-async function main() {
+async function v2() {}
+
+async function v1() {
   let mintNFT: MintNFT;
   let eventManager: EventManager;
 
@@ -52,7 +54,7 @@ async function main() {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main().catch((error) => {
+v2().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });

@@ -1,95 +1,49 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "./lib/Hashing.sol";
-import "@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol";
-import "./ERC2771ContextUpgradeable.sol";
+import "./MintNFT.sol";
+import "../interface/IZkVerifier.sol";
 
-contract MintNFT is
-    ERC721EnumerableUpgradeable,
-    ERC2771ContextUpgradeable,
-    OwnableUpgradeable
-{
+contract MintNFTV2 is MintNFT {
     using Counters for Counters.Counter;
-    Counters.Counter private _tokenIds;
+    Counters.Counter internal _tokenIds;
 
-    address private eventManagerAddr;
+    address internal eventManagerAddr;
 
-    function setEventManagerAddr(address _addr) public onlyOwner {
+    function setEventManagerAddr(address _addr) public override onlyOwner {
         require(_addr != address(0), "event manager address is blank");
         eventManagerAddr = _addr;
     }
 
-    struct NFTAttribute {
-        string metaDataURL;
-        uint256 requiredParticipateCount;
-    }
-
     // NFT meta data url via tokenId
-    mapping(uint256 => string) private nftMetaDataURL;
+    mapping(uint256 => string) internal nftMetaDataURL;
     // Holding NFT via hash of eventId and address
-    mapping(bytes32 => bool) private isHoldingEventNFT;
+    mapping(bytes32 => bool) internal isHoldingEventNFT;
     // Participate count via hash of groupId and address hash
-    mapping(bytes32 => uint256) private countOfParticipation;
+    mapping(bytes32 => uint256) internal countOfParticipation;
     // NFT attribute location (ex. ipfs, centralized storage) via hash of participateCount, eventId
-    mapping(bytes32 => string) private eventNftAttributes;
+    mapping(bytes32 => string) internal eventNftAttributes;
     // remaining mint count of Event
-    mapping(uint256 => uint256) private remainingEventNftCount;
-    // secretPhrase via EventId
-    mapping(uint256 => bytes32) private eventSecretPhrases;
+    mapping(uint256 => uint256) internal remainingEventNftCount;
 
-    event MintedNFTAttributeURL(address indexed holder, string url);
+    bool private initialized;
+    address internal zkVerifierAddress;
 
-    function initialize(MinimalForwarderUpgradeable trustedForwarder)
-        public
-        initializer
-    {
-        __ERC721_init("MintRally", "MR");
-        __Ownable_init();
-        __ERC2771Context_init(address(trustedForwarder));
+    function initialize(address _zkVerifierAddress) public initializer {
+        require(!initialized, "MintNFT: Already initialized");
+        setZkVerifier(_zkVerifierAddress);
+        initialized = true;
     }
 
-    function _msgSender()
-        internal
-        view
-        virtual
-        override(ContextUpgradeable, ERC2771ContextUpgradeable)
-        returns (address sender)
-    {
-        if (isTrustedForwarder(msg.sender)) {
-            // The assembly code is more direct than the Solidity version using `abi.decode`.
-            /// @solidity memory-safe-assembly
-            assembly {
-                sender := shr(96, calldataload(sub(calldatasize(), 20)))
-            }
-        } else {
-            return super._msgSender();
-        }
-    }
-
-    function _msgData()
-        internal
-        view
-        virtual
-        override(ContextUpgradeable, ERC2771ContextUpgradeable)
-        returns (bytes calldata)
-    {
-        if (isTrustedForwarder(msg.sender)) {
-            return msg.data[:msg.data.length - 20];
-        } else {
-            return super._msgData();
-        }
+    function setZkVerifier(address _zkVerifierAddress) public onlyOwner {
+        zkVerifierAddress = _zkVerifierAddress;
     }
 
     function mintParticipateNFT(
         uint256 _groupId,
         uint256 _eventId,
         string memory _secretPhrase
-    ) external {
+    ) external override {
         canMint(_eventId, _secretPhrase);
         remainingEventNftCount[_eventId] = remainingEventNftCount[_eventId] - 1;
 
@@ -126,6 +80,7 @@ contract MintNFT is
     function canMint(uint256 _eventId, string memory _secretPhrase)
         public
         view
+        override
         returns (bool)
     {
         require(
@@ -148,12 +103,13 @@ contract MintNFT is
     function setEventInfo(
         uint256 _eventId,
         uint256 _mintLimit,
-        bytes32 _secretPhrase,
+        IZkVerifier.VerifyingKeyPoint memory _verifyingKeyPoint,
         NFTAttribute[] memory attributes
     ) external {
         require(_msgSender() == eventManagerAddr, "unauthorized");
         remainingEventNftCount[_eventId] = _mintLimit;
-        eventSecretPhrases[_eventId] = _secretPhrase;
+        IZkVerifier _zkVerifier = IZkVerifier(zkVerifierAddress);
+        _zkVerifier.setVerifyingKeyPoint(_verifyingKeyPoint, _eventId);
         for (uint256 index = 0; index < attributes.length; index++) {
             eventNftAttributes[
                 Hashing.hashingDoubleUint256(
@@ -167,12 +123,13 @@ contract MintNFT is
     function getRemainingNFTCount(uint256 _eventId)
         external
         view
+        override
         returns (uint256)
     {
         return remainingEventNftCount[_eventId];
     }
 
-    function burn(uint256 tokenId) public onlyOwner {
+    function burn(uint256 tokenId) public override onlyOwner {
         _burn(tokenId);
     }
 
@@ -186,13 +143,12 @@ contract MintNFT is
         return metaDataURL;
     }
 
-    function verifySecretPhrase(string memory _secretPhrase, uint256 _eventId)
-        internal
-        view
-        returns (bool)
-    {
-        bytes32 encryptedSecretPhrase = keccak256(bytes(_secretPhrase));
-        bool result = eventSecretPhrases[_eventId] == encryptedSecretPhrase;
-        return result;
+    function verifySecretPhrase(
+        IZkVerifier.Proof memory _proof,
+        uint256 _eventId
+    ) internal view returns (bool) {
+        IZkVerifier _zkVerifier = IZkVerifier(zkVerifierAddress);
+        bool result = _zkVerifier.verifyTx(_proof, _eventId);
+        require(result, "MintNFT: failed to verify");
     }
 }

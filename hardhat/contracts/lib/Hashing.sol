@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.4;
 import "./Pairing.sol";
-import "../IZkVerifier.sol";
+import "../interface/IZkVerifier.sol";
 import "hardhat/console.sol";
 
 library Hashing {
