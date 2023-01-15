@@ -32,8 +32,11 @@ interface IZkVerifier {
         uint256 _eventId
     ) external;
 
-    function verifyTx(Proof memory _proof, uint256 _eventId)
+    function verify(IZkVerifier.Proof memory _proof, uint256 _eventId)
         external
         view
         returns (bool);
+
+    function recordUsedProof(IZkVerifier.Proof calldata proof, uint256 _eventId)
+        external;
 }

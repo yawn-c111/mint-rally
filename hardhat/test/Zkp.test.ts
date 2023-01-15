@@ -1,8 +1,6 @@
 import { expect } from "chai";
 import { initialize } from "zokrates-js";
 import { ethers } from "hardhat";
-import { Verifier } from "../typechain";
-const verifierABI = require("../artifacts/contracts/ZkVerifier.sol/Verifier.json");
 
 const createProvider = async () => {
   const zokratesDefaultProvider = await initialize();
@@ -68,7 +66,9 @@ describe("ZKP", () => {
     const vk: any = keypair.vk;
     const pk: any = keypair.pk;
 
-    const verifierContractFactory = await ethers.getContractFactory("Verifier");
+    const verifierContractFactory = await ethers.getContractFactory(
+      "ZkVerifier"
+    );
     const verifierContract = await verifierContractFactory.deploy();
     await verifierContract.deployed();
 
@@ -89,12 +89,12 @@ describe("ZKP", () => {
       witness,
       pk
     );
-    const pass1 = await verifierContract.verifyTx(proof.proof, 1);
-    expect(pass1).equal(true);
-    await verifierContract.recordUsedProof(proof.proof);
+    await verifierContract.verify(proof.proof, 1);
+    await verifierContract.recordUsedProof(proof.proof, 1);
 
-    const pass1Duplicate = await verifierContract.verifyTx(proof.proof, 1);
-    expect(pass1Duplicate).equal(false);
+    await expect(verifierContract.verify(proof.proof, 1)).to.be.revertedWith(
+      "ZkVerifier: faild to verify"
+    );
 
     const { witness: witness2 } = zokratesProvider.computeWitness(
       checkHashArtifacts_participant,
@@ -105,8 +105,7 @@ describe("ZKP", () => {
       witness2,
       pk
     );
-    const pass2 = await verifierContract.verifyTx(proof2.proof, 1);
-    expect(pass2).equal(true);
+    await verifierContract.verify(proof2.proof, 1);
   });
 });
 

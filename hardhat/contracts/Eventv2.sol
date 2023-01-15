@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./Event.sol";
-import "../interface/IEvent.sol";
-import "../interface/IZkVerifier.sol";
-import "../interface/IMintNFTv2.sol";
+import "./interface/IEventv2.sol";
+import "./interface/IZkVerifier.sol";
+import "./interface/IMintNFTv2.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract EventManagerV2 is EventManager {
+contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
     using Counters for Counters.Counter;
 
     Counters.Counter internal _eventRecordIds;
@@ -28,21 +29,21 @@ contract EventManagerV2 is EventManager {
     // max mint limit
     uint256 internal maxMintLimit;
 
-    function setMintNFTAddr(address _mintNftAddr) public override onlyOwner {
+    function setMintNFTAddr(address _mintNftAddr) public onlyOwner {
         require(_mintNftAddr != address(0), "mint nft address is blank");
         mintNFTAddr = _mintNftAddr;
     }
 
-    function setRelayerAddr(address _relayerAddr) public override onlyOwner {
+    function setRelayerAddr(address _relayerAddr) public onlyOwner {
         require(_relayerAddr != address(0), "relayer address is blank");
         relayerAddr = _relayerAddr;
     }
 
-    function setMtxPrice(uint256 _price) public override onlyOwner {
+    function setMtxPrice(uint256 _price) public onlyOwner {
         mtxPrice = _price;
     }
 
-    function setMaxMintLimit(uint256 _mintLimit) public override onlyOwner {
+    function setMaxMintLimit(uint256 _mintLimit) public onlyOwner {
         require(_mintLimit != 0, "mint limit is 0");
         maxMintLimit = _mintLimit;
     }
@@ -51,7 +52,7 @@ contract EventManagerV2 is EventManager {
         address _relayerAddr,
         uint256 _mtxPrice,
         uint256 _maxMintLimit
-    ) public override initializer {
+    ) public initializer {
         __Ownable_init();
         _groupIds.increment();
         _eventRecordIds.increment();
@@ -60,7 +61,7 @@ contract EventManagerV2 is EventManager {
         setMaxMintLimit(_maxMintLimit);
     }
 
-    function createGroup(string memory _name) external override {
+    function createGroup(string memory _name) external {
         uint256 _newGroupId = _groupIds.current();
         _groupIds.increment();
 
@@ -72,14 +73,14 @@ contract EventManagerV2 is EventManager {
         emit CreatedGroupId(msg.sender, _newGroupId);
     }
 
-    function getGroups() public view override returns (Group[] memory) {
+    function getGroups() public view returns (Group[] memory) {
         uint256 _numberOfGroups = groups.length;
         Group[] memory _groups = new Group[](_numberOfGroups);
         _groups = groups;
         return _groups;
     }
 
-    function getOwnGroups() public view override returns (Group[] memory) {
+    function getOwnGroups() public view returns (Group[] memory) {
         uint256 _numberOfOwnGroups = ownGroupIds[msg.sender].length;
         uint256 _numberOfAllGroups = groups.length;
 
@@ -102,7 +103,7 @@ contract EventManagerV2 is EventManager {
         uint256 _mintLimit,
         bool _useMtx,
         IZkVerifier.VerifyingKeyPoint memory _verifyingKeyPoint,
-        IMintNFT.NFTAttribute[] memory _eventNFTAttributes
+        IMintNFTv2.NFTAttribute[] memory _eventNFTAttributes
     ) external payable {
         require(
             _mintLimit > 0 && _mintLimit <= maxMintLimit,
@@ -138,7 +139,7 @@ contract EventManagerV2 is EventManager {
             })
         );
 
-        IMintNFTV2 _mintNFT = IMintNFTV2(mintNFTAddr);
+        IMintNFTv2 _mintNFT = IMintNFTv2(mintNFTAddr);
         _mintNFT.setEventInfo(
             _newEventId,
             _mintLimit,
@@ -150,12 +151,7 @@ contract EventManagerV2 is EventManager {
         groupIdByEventId[_newEventId] = _groupId;
     }
 
-    function getEventRecords()
-        public
-        view
-        override
-        returns (EventRecord[] memory)
-    {
+    function getEventRecords() public view returns (EventRecord[] memory) {
         uint256 _numberOfEventRecords = eventRecords.length;
         // create array of events
         EventRecord[] memory _eventRecords = new EventRecord[](
@@ -168,7 +164,6 @@ contract EventManagerV2 is EventManager {
     function getEventById(uint256 _eventId)
         external
         view
-        override
         returns (EventRecord memory)
     {
         uint256 _eventRecordIndex = _eventId - 1;

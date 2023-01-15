@@ -5,9 +5,9 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721Enumer
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "../lib/Hashing.sol";
+import "./lib/Hashing.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol";
-import "../lib/ERC2771ContextUpgradeable.sol";
+import "./ERC2771ContextUpgradeable.sol";
 
 contract MintNFT is
     ERC721EnumerableUpgradeable,

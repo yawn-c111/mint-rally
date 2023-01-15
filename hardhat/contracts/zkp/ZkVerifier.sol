@@ -4,13 +4,14 @@ pragma solidity ^0.8.4;
 import "../lib/Pairing.sol";
 import "../lib/Hashing.sol";
 import "../interface/IZkVerifier.sol";
+import "hardhat/console.sol";
 
-contract Verifier {
+contract ZkVerifier {
     using Pairing for *;
 
     mapping(uint256 => IZkVerifier.VerifyingKeyPoint)
         internal verifyingKeyPoint;
-    mapping(bytes32 => bool) internal usedProof;
+    mapping(uint256 => mapping(bytes32 => bool)) internal usedProof;
 
     function setVerifyingKeyPoint(
         IZkVerifier.VerifyingKeyPoint calldata _verifyingKeyPoint,
@@ -128,8 +129,8 @@ contract Verifier {
         uint256[] memory inputValues = new uint256[](0);
         bytes32 hashedProof = Hashing.hashingProof(_proof);
         if (
-            _verify(inputValues, _proof, _eventId) == 0 &&
-            !usedProof[hashedProof]
+            !usedProof[_eventId][hashedProof] &&
+            _verify(inputValues, _proof, _eventId) == 0
         ) {
             return true;
         } else {
@@ -137,18 +138,10 @@ contract Verifier {
         }
     }
 
-    function verifyTx(IZkVerifier.Proof calldata _proof, uint256 _eventId)
+    function recordUsedProof(IZkVerifier.Proof calldata proof, uint256 _eventId)
         external
-        returns (bool)
     {
-        bool result = verify(_proof, _eventId);
-        require(result, "ZkVerifier: faild to verify");
-        recordUsedProof(_proof);
-        return true;
-    }
-
-    function recordUsedProof(IZkVerifier.Proof calldata proof) internal {
         bytes32 hashedProof = Hashing.hashingProof(proof);
-        usedProof[hashedProof] = true;
+        usedProof[_eventId][hashedProof] = true;
     }
 }
