@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef } from "react";
+import { FC, useEffect, useState } from "react";
 import {
   Alert,
   AlertDescription,
@@ -6,8 +6,9 @@ import {
   AlertTitle,
   Box,
   Flex,
+  Radio,
+  RadioGroup,
   Spinner,
-  Switch,
   Text,
   Textarea,
 } from "@chakra-ui/react";
@@ -22,7 +23,6 @@ import {
 import {
   ICreateEventRecordParams,
   IEventGroup,
-  INFTAttribute,
   INFTImage,
   useCreateEventRecord,
   useOwnEventGroups,
@@ -31,7 +31,7 @@ import ErrorMessage from "../../components/atoms/form/ErrorMessage";
 import { useLocale } from "../../hooks/useLocale";
 import Link from "next/link";
 import NFTAttributesForm from "./NFTAttributesForm";
-import { useIpfsClient, useUploadImageToIpfs } from "src/hooks/useIpfs";
+import { useIpfs } from "src/hooks/useIpfs";
 
 interface EventFormData {
   eventGroupId: string;
@@ -42,15 +42,14 @@ interface EventFormData {
   endTime: string;
   secretPhrase: string;
   mintLimit: number;
-  useMtx: boolean;
+  useMtx: "true" | "false";
   nfts: INFTImage[];
 }
 
 const CreateEventForm: FC = () => {
   const { t } = useLocale();
-  const ipfsClient = useIpfsClient();
-  const uploadImagesToIpfs = useUploadImageToIpfs();
-
+  const { loading, errors, nftAttributes, saveNFTMetadataOnIPFS } = useIpfs();
+  const [formData, setFormData] = useState<EventFormData | null>(null);
   const {
     control,
     handleSubmit,
@@ -68,7 +67,7 @@ const CreateEventForm: FC = () => {
       endTime: "",
       secretPhrase: "",
       mintLimit: 10,
-      useMtx: false,
+      useMtx: undefined,
       nfts: [],
     },
   });
@@ -85,8 +84,9 @@ const CreateEventForm: FC = () => {
         { name: "", requiredParticipateCount: 0, description: "", image: "" },
       ]);
     } else {
-      console.log("has group");
+      console.log("has group", groupNFTAttributes);
       const baseNFTAttributes: INFTImage[] = JSON.parse(groupNFTAttributes);
+      console.log(baseNFTAttributes);
       setValue("nfts", baseNFTAttributes);
     }
   }, [watch("eventGroupId")]);
@@ -100,86 +100,35 @@ const CreateEventForm: FC = () => {
     createEventRecord,
   } = useCreateEventRecord();
 
-  const saveNFTMetadataOnIPFS = async (
-    groupId: string,
-    eventName: string,
-    nfts: INFTImage[]
-  ) => {
-    const imageUpdatedNfts = nfts.filter((nft) => nft.fileObject);
-    let baseNftAttributes = nfts.filter((nft) => !nft.fileObject);
-
-    const uploadResult = await uploadImagesToIpfs(imageUpdatedNfts);
-    if (uploadResult) {
-      const nftAttributes: INFTImage[] = uploadResult.renamedFiles.map(
-        ({ name, fileObject, description, requiredParticipateCount }) => ({
-          name: name,
-          image: `ipfs://${uploadResult.rootCid}/${fileObject.name}`,
-          description: description,
-          requiredParticipateCount,
-        })
-      );
-      baseNftAttributes = nftAttributes.concat(baseNftAttributes);
-    }
-
-    const metadataFiles: File[] = [];
-    for (const nftAttribute of baseNftAttributes) {
-      const attribute: INFTAttribute = {
-        name: nftAttribute.name,
-        image: nftAttribute.image,
-        description: nftAttribute.description,
-        external_link: "https://mintrally.xyz",
-        traits: {
-          EventGroupId: groupId,
-          EventName: eventName,
-          RequiredParticipateCount: nftAttribute.requiredParticipateCount,
-        },
-      };
-      metadataFiles.push(
-        new File(
-          [JSON.stringify(attribute)],
-          `${nftAttribute.requiredParticipateCount}.json`,
-          { type: "text/json" }
-        )
-      );
-    }
-    const metaDataRootCid = await ipfsClient.put(metadataFiles, {
-      name: `${groupId}_${eventName}`,
-      maxRetries: 3,
-      wrapWithDirectory: true,
-    });
-    return baseNftAttributes.map((attribute) => {
-      return {
-        requiredParticipateCount: attribute.requiredParticipateCount,
-        metaDataURL: `ipfs://${metaDataRootCid}/${attribute.requiredParticipateCount}.json`,
-      };
-    });
-  };
-
   const onSubmit = async (data: EventFormData) => {
-    const nftAttributes = await saveNFTMetadataOnIPFS(
-      data.eventGroupId,
-      data.eventName,
-      data.nfts
-    );
-
-    const params: ICreateEventRecordParams = {
-      groupId: data.eventGroupId,
-      eventName: data.eventName,
-      description: data.description,
-      date: new Date(data.date),
-      startTime: data.startTime,
-      endTime: data.endTime,
-      secretPhrase: data.secretPhrase,
-      mintLimit: Number(data.mintLimit),
-      useMtx: data.useMtx,
-      attributes: nftAttributes,
-    };
-    try {
-      await createEventRecord(params);
-    } catch (error: any) {
-      alert(error);
-    }
+    setFormData(data);
+    saveNFTMetadataOnIPFS(data.eventGroupId, data.eventName, data.nfts);
   };
+
+  useEffect(() => {
+    console.log("nftAttributes", nftAttributes);
+    if (nftAttributes.length > 0 && formData) {
+      console.log("ok", formData);
+      const params: ICreateEventRecordParams = {
+        groupId: formData.eventGroupId,
+        eventName: formData.eventName,
+        description: formData.description,
+        date: new Date(formData.date),
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        secretPhrase: formData.secretPhrase,
+        mintLimit: Number(formData.mintLimit),
+        useMtx: formData.useMtx === "true",
+        attributes: nftAttributes,
+      };
+      try {
+        console.log(params);
+        createEventRecord(params);
+      } catch (error: any) {
+        alert(error);
+      }
+    }
+  }, [nftAttributes]);
 
   return (
     <>
@@ -311,7 +260,7 @@ const CreateEventForm: FC = () => {
                           value={value}
                           type="time"
                         />
-                        <ErrorMessage>{errors.date?.message}</ErrorMessage>
+                        <ErrorMessage>{errors.startTime?.message}</ErrorMessage>
                       </>
                     )}
                   />
@@ -338,7 +287,7 @@ const CreateEventForm: FC = () => {
                           value={value}
                           type="time"
                         />
-                        <ErrorMessage>{errors.date?.message}</ErrorMessage>
+                        <ErrorMessage>{errors.endTime?.message}</ErrorMessage>
                       </>
                     )}
                   />
@@ -365,7 +314,7 @@ const CreateEventForm: FC = () => {
                   }) => (
                     <>
                       <Input type="number" onChange={onChange} value={value} />
-                      <ErrorMessage>{errors.description?.message}</ErrorMessage>
+                      <ErrorMessage>{errors.mintLimit?.message}</ErrorMessage>
                     </>
                   )}
                 />
@@ -377,13 +326,21 @@ const CreateEventForm: FC = () => {
                 <Controller
                   control={control}
                   name="useMtx"
+                  rules={{
+                    required: "required",
+                  }}
                   render={({
                     field: { onChange, value },
                     formState: { errors },
                   }) => (
                     <>
-                      <Switch isChecked={value} onChange={onChange} />
-                      <ErrorMessage>{errors.description?.message}</ErrorMessage>
+                      <RadioGroup onChange={onChange}>
+                        <Radio value="false" mr={6}>
+                          {t.EVENT_USE_MTX_FALSE}
+                        </Radio>
+                        <Radio value="true">{t.EVENT_USE_MTX_TRUE}</Radio>
+                      </RadioGroup>
+                      <ErrorMessage>{errors.useMtx?.message}</ErrorMessage>
                     </>
                   )}
                 />
@@ -414,7 +371,9 @@ const CreateEventForm: FC = () => {
                   }) => (
                     <>
                       <Input id="secret" onChange={onChange} value={value} />
-                      <ErrorMessage>{errors.description?.message}</ErrorMessage>
+                      <ErrorMessage>
+                        {errors.secretPhrase?.message}
+                      </ErrorMessage>
                     </>
                   )}
                 />
