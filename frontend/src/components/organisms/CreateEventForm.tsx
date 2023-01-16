@@ -97,37 +97,39 @@ const CreateEventForm: FC = () => {
     status,
     errors: createError,
     loading: createLoading,
+    generatingVk,
+    makingTx,
     createEventRecord,
   } = useCreateEventRecord();
 
   const onSubmit = async (data: EventFormData) => {
     setFormData(data);
-    saveNFTMetadataOnIPFS(data.eventGroupId, data.eventName, data.nfts);
+    await saveNFTMetadataOnIPFS(data.eventGroupId, data.eventName, data.nfts);
   };
 
   useEffect(() => {
-    console.log("nftAttributes", nftAttributes);
-    if (nftAttributes.length > 0 && formData) {
-      console.log("ok", formData);
-      const params: ICreateEventRecordParams = {
-        groupId: formData.eventGroupId,
-        eventName: formData.eventName,
-        description: formData.description,
-        date: new Date(formData.date),
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        secretPhrase: formData.secretPhrase,
-        mintLimit: Number(formData.mintLimit),
-        useMtx: formData.useMtx === "true",
-        attributes: nftAttributes,
-      };
-      try {
-        console.log(params);
-        createEventRecord(params);
-      } catch (error: any) {
-        alert(error);
+    const tx = async () => {
+      if (nftAttributes.length > 0 && formData) {
+        const params: ICreateEventRecordParams = {
+          groupId: formData.eventGroupId,
+          eventName: formData.eventName,
+          description: formData.description,
+          date: new Date(formData.date),
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          secretPhrase: formData.secretPhrase,
+          mintLimit: Number(formData.mintLimit),
+          useMtx: formData.useMtx === "true",
+          attributes: nftAttributes,
+        };
+        try {
+          await createEventRecord(params);
+        } catch (error: any) {
+          alert(error);
+        }
       }
-    }
+    };
+    tx();
   }, [nftAttributes]);
 
   return (
@@ -402,6 +404,8 @@ const CreateEventForm: FC = () => {
               >
                 {createLoading ? <Spinner /> : status ? "Success" : "Create"}
               </Button>
+              {generatingVk && "Generating VK"}
+              {makingTx && "Making Tx"}
               {status && "Your Event Created!🎉"}
               {createError && (
                 <Alert status="error" mt={2}>

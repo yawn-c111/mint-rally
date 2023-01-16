@@ -144,11 +144,11 @@ export const useMintParticipateNFT = (event: IEventRecord | null) => {
   );
 
   const sendNormalTx = useCallback(
-    async (mintNFTContract: ethers.Contract, secretPhrase: string) => {
+    async (mintNFTContract: ethers.Contract, proof: any) => {
       const tx = await mintNFTContract.mintParticipateNFT(
         event?.groupId,
         event?.eventRecordId,
-        secretPhrase
+        proof
       );
       await tx.wait();
     },
@@ -159,25 +159,24 @@ export const useMintParticipateNFT = (event: IEventRecord | null) => {
     async ({ secretPhrase, mtx }: IMintParticipateNFTParams) => {
       try {
         setErrors(null);
+
         const mintNFTManager = getMintNFTManagerContract({ signin: true });
         if (!mintNFTManager)
           throw new Error("Cannot find mintNFTManager contract");
 
         setLoading(true);
+        const { data: proof } = await axios.get("/api/zk/generate-proof");
         const provider = new ethers.providers.Web3Provider(
           window.ethereum as any
         );
         const signer = provider.getSigner();
 
-        await mintNFTManager.canMint(
-          event?.eventRecordId.toNumber(),
-          secretPhrase
-        );
+        await mintNFTManager.canMint(event?.eventRecordId.toNumber(), proof);
 
         if (mtx) {
           await sentMetaTx(mintNFTManager, signer, secretPhrase);
         } else {
-          await sendNormalTx(mintNFTManager, secretPhrase);
+          await sendNormalTx(mintNFTManager, proof);
         }
         setStatus(true);
       } catch (e: any) {

@@ -74,12 +74,16 @@ describe("ZKP", () => {
 
     await verifierContract.setVerifyingKeyPoint(vk, 1);
 
+    // 参加者
+    const [hash3, hash4] = await generateHash("12", "12", "12", "12");
+
     const checkHashArtifacts_participant = await createHashCheckArtifacts(
       hash1,
       hash2
     );
-
-    // 参加者
+    const keypair2 = zokratesProvider.setup(
+      checkHashArtifacts_organizer.program
+    );
     const { witness } = zokratesProvider.computeWitness(
       checkHashArtifacts_participant,
       ["12", "12", "12", "12"]
@@ -87,14 +91,15 @@ describe("ZKP", () => {
     const proof: any = zokratesProvider.generateProof(
       checkHashArtifacts_participant.program,
       witness,
-      pk
+      keypair.pk
     );
-    await verifierContract.verify(proof.proof, 1);
-    await verifierContract.recordUsedProof(proof.proof, 1);
+    let result = await verifierContract.verify(proof.proof, 1);
+    expect(result).equal(true);
+    const record = await verifierContract.recordUsedProof(proof.proof, 1);
+    await record.wait();
 
-    await expect(verifierContract.verify(proof.proof, 1)).to.be.revertedWith(
-      "ZkVerifier: faild to verify"
-    );
+    result = await verifierContract.verify(proof.proof, 1);
+    expect(result).equal(false);
 
     const { witness: witness2 } = zokratesProvider.computeWitness(
       checkHashArtifacts_participant,
@@ -105,7 +110,8 @@ describe("ZKP", () => {
       witness2,
       pk
     );
-    await verifierContract.verify(proof2.proof, 1);
+    result = await verifierContract.verify(proof2.proof, 1);
+    expect(result).equal(true);
   });
 });
 

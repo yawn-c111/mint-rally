@@ -1,12 +1,14 @@
 import { useAddress } from "@thirdweb-dev/react";
 import { ethers } from "ethers";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BigNumber from "bignumber.js";
 
 const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_EVENT_MANAGER!;
 const provierRpc = process.env.NEXT_PUBLIC_PROVIDER_RPC!;
 import contract from "../contracts/EventManager.json";
 import { EVENT_BLACK_LIST } from "src/constants/event";
+import axios from "axios";
+
 export interface IEventGroup {
   groupId: BigNumber;
   name: string;
@@ -192,16 +194,25 @@ export const useOwnEventGroups = () => {
  */
 export const useCreateEventRecord = () => {
   const [errors, setErrors] = useState<Error | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [generatingVk, setGeneratingVk] = useState(false);
+  const [makingTx, setMakingTx] = useState(false);
   const [status, setStatus] = useState(false);
+
+  const loading = useMemo(() => {
+    return generatingVk || makingTx;
+  }, [generatingVk, makingTx]);
 
   const createEventRecord = async (params: ICreateEventRecordParams) => {
     setErrors(null);
     try {
+      setGeneratingVk(true);
+      const { data } = await axios.get("/api/zk/generate-verification-keys");
+      console.log(data);
+      setGeneratingVk(false);
       const { ethereum } = window;
       const eventManager = getEventManagerContract({ signin: true });
       if (!eventManager) throw "error: contract can't found";
-      setLoading(true);
+      setMakingTx(true);
       const datestr = params.date.toLocaleDateString();
       const provider = new ethers.providers.Web3Provider(ethereum as any);
       let value!: ethers.BigNumber;
@@ -218,22 +229,23 @@ export const useCreateEventRecord = () => {
         `${datestr} ${params.startTime}~${params.endTime}`,
         params.mintLimit,
         params.useMtx,
-        params.secretPhrase,
+        data.vk,
         params.attributes,
         {
           value: params.useMtx ? value : 0,
         }
       );
       await tx.wait();
-      setLoading(false);
+      setMakingTx(false);
       setStatus(true);
     } catch (e: any) {
       console.log(e);
       setErrors(e.error?.data || "error occured");
-      setLoading(false);
+      setGeneratingVk(false);
+      setMakingTx(false);
     }
   };
-  return { status, errors, loading, createEventRecord };
+  return { status, errors, loading, generatingVk, makingTx, createEventRecord };
 };
 
 /**

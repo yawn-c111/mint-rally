@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./interface/IEventv2.sol";
-import "./interface/IZkVerifier.sol";
-import "./interface/IMintNFTv2.sol";
+import "../interface/IEventv2.sol";
+import "../interface/IZkVerifier.sol";
+import "../interface/IMintNFTv2.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -100,6 +100,7 @@ contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
         string memory _name,
         string memory _description,
         string memory _date,
+        string memory _pkIpfsHash,
         uint256 _mintLimit,
         bool _useMtx,
         IZkVerifier.VerifyingKeyPoint memory _verifyingKeyPoint,

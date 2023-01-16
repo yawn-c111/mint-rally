@@ -10,7 +10,7 @@
     "deploy:mintNFT": "npx hardhat run scripts/deployMintNft.ts --network",
     "compile": "npx hardhat compile",
     "clean": "npx hardhat clean",
-    "test": "npx hardhat compile && npx hardhat --max-memory 8192 test",
+    "test": "npx hardhat compile && npx hardhat --max-memory 16384 test",
     "localchain": "npx hardhat node",
     "slither": "slither . --solc-remaps '@openzeppelin=node_modules/@openzeppelin' --exclude naming-convention,external-function,low-level-calls",
     "size": "npx hardhat size-contracts",
