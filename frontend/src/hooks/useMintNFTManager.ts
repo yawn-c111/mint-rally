@@ -1,7 +1,7 @@
 import { BigNumber, ethers } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_MINT_NFT_MANAGER!;
-import contract from "../contracts/MintNFT.json";
+import contract from "../contracts/MintNFTv2.json";
 import FowarderABI from "../contracts/Fowarder.json";
 import { signMetaTxRequest } from "../../utils/signer";
 const provierRpc = process.env.NEXT_PUBLIC_PROVIDER_RPC!;
@@ -13,6 +13,7 @@ import {
   getOwnedNFTsFromAddress,
   getNFTDataFromAddress,
 } from "../libs/mintManagerFunctions";
+import cloudfunctionClient from "utils/cloudfunction-client";
 export interface IMintParticipateNFTParams {
   groupId: number;
   eventId: number;
@@ -165,7 +166,9 @@ export const useMintParticipateNFT = (event: IEventRecord | null) => {
           throw new Error("Cannot find mintNFTManager contract");
 
         setLoading(true);
-        const { data: proof } = await axios.get("/api/zk/generate-proof");
+        const proof = await cloudfunctionClient.get(
+          `/zk/generate-proof?passPhrase=${secretPhrase}&eventId=${event?.eventRecordId.toNumber()}`
+        );
         const provider = new ethers.providers.Web3Provider(
           window.ethereum as any
         );

@@ -18,4 +18,5 @@ interface IEventManagerv2 {
     }
 
     event CreatedGroupId(address indexed owner, uint256 groupId);
+    event CreatedEventId(address indexed owner, uint256 eventId);
 }

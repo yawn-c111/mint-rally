@@ -80,6 +80,16 @@ contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
         return _groups;
     }
 
+    function getGroupById(uint256 _groupId)
+        external
+        view
+        returns (Group memory)
+    {
+        uint256 _eventGroupIndex = _groupId - 1;
+        Group memory _group = groups[_eventGroupIndex];
+        return _group;
+    }
+
     function getOwnGroups() public view returns (Group[] memory) {
         uint256 _numberOfOwnGroups = ownGroupIds[msg.sender].length;
         uint256 _numberOfAllGroups = groups.length;
@@ -100,7 +110,6 @@ contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
         string memory _name,
         string memory _description,
         string memory _date,
-        string memory _pkIpfsHash,
         uint256 _mintLimit,
         bool _useMtx,
         IZkVerifier.VerifyingKeyPoint memory _verifyingKeyPoint,
@@ -150,6 +159,8 @@ contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
 
         eventIdsByGroupId[_groupId].push(_newEventId);
         groupIdByEventId[_newEventId] = _groupId;
+
+        emit CreatedEventId(msg.sender, _newEventId);
     }
 
     function getEventRecords() public view returns (EventRecord[] memory) {

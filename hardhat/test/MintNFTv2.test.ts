@@ -109,7 +109,6 @@ describe("MintNFTv2", () => {
         eventInfo1.name,
         eventInfo1.description,
         eventInfo1.date,
-        "ipfshash",
         eventInfo1.maxSupply,
         eventInfo1.mtx,
         vk,

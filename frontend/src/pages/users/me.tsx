@@ -24,6 +24,7 @@ const User = () => {
   const address = useAddress();
 
   const { isOpen, onClose, onOpen } = useDisclosure();
+  console.log(ownedNFTs);
 
   const nftCollectionsByGroup = useMemo(() => {
     const grouped = ownedNFTs.reduce<Record<number, IOwnedNFT[]>>(

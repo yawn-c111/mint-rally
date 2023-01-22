@@ -84,9 +84,7 @@ const CreateEventForm: FC = () => {
         { name: "", requiredParticipateCount: 0, description: "", image: "" },
       ]);
     } else {
-      console.log("has group", groupNFTAttributes);
       const baseNFTAttributes: INFTImage[] = JSON.parse(groupNFTAttributes);
-      console.log(baseNFTAttributes);
       setValue("nfts", baseNFTAttributes);
     }
   }, [watch("eventGroupId")]);

@@ -5,7 +5,7 @@
 // Runtime Environment's members available in the global scope.
 import { writeFileSync } from "fs";
 import { ethers, upgrades } from "hardhat";
-import { MintNFT, EventManager } from "../typechain";
+import { MintNFT, EventManager } from "../../typechain";
 
 async function main() {
   let mintNFT: MintNFT;
@@ -50,7 +50,7 @@ async function main() {
   console.log(`NEXT_PUBLIC_CONTRACT_EVENT_MANAGER=${eventManager.address}`);
 
   writeFileSync(
-    "./scripts/deployed_contract_addr_stg.json",
+    "./scripts/staging/deployed_contract_addr.json",
     JSON.stringify(
       {
         MintRallyFowarder: forwarder.address,

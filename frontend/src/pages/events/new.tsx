@@ -3,11 +3,16 @@ import { useAddress } from "@thirdweb-dev/react";
 import { NextPage } from "next";
 import { useLocale } from "../../hooks/useLocale";
 import CreateEventForm from "../../components/organisms/CreateEventForm";
+import { useMemo } from "react";
 
 const EventCreate: NextPage = () => {
   const { t } = useLocale();
   // check contract address
   const address = useAddress();
+
+  const showForm = useMemo(() => {
+    return address;
+  }, [address]);
 
   return (
     <>
@@ -15,7 +20,7 @@ const EventCreate: NextPage = () => {
         <Heading as="h1" mb={10}>
           {t.CREATE_NEW_EVENT}
         </Heading>
-        {address ? <CreateEventForm /> : <span>please sign in first</span>}
+        {showForm ? <CreateEventForm /> : <span>please sign in first</span>}
       </Container>
     </>
   );

@@ -5,9 +5,9 @@ import BigNumber from "bignumber.js";
 
 const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_EVENT_MANAGER!;
 const provierRpc = process.env.NEXT_PUBLIC_PROVIDER_RPC!;
-import contract from "../contracts/EventManager.json";
+import contract from "../contracts/EventManagerv2.json";
 import { EVENT_BLACK_LIST } from "src/constants/event";
-import axios from "axios";
+import cloudfunctionClient from "utils/cloudfunction-client";
 
 export interface IEventGroup {
   groupId: BigNumber;
@@ -112,14 +112,22 @@ export const useCreateEventGroup = () => {
   }, []);
 
   useEffect(() => {
-    if (status && createdGroupId !== null) {
-      window.localStorage.setItem(
-        `group${createdGroupId}`,
-        JSON.stringify(nftAttributes)
-      );
-      setLoading(false);
-    }
+    const finalize = async () => {
+      if (status && createdGroupId !== null) {
+        await createFirebaseRecord();
+        setLoading(false);
+      }
+    };
+    finalize();
   }, [status, createdGroupId]);
+
+  const createFirebaseRecord = async () => {
+    await cloudfunctionClient.post(`/event/group`, {
+      groupId: createdGroupId,
+      defaultNFTAttributes: nftAttributes,
+    });
+    return;
+  };
 
   const createEventGroup = async (params: ICreateEventGroupParams) => {
     try {
@@ -197,17 +205,61 @@ export const useCreateEventRecord = () => {
   const [generatingVk, setGeneratingVk] = useState(false);
   const [makingTx, setMakingTx] = useState(false);
   const [status, setStatus] = useState(false);
+  const [createdEventId, setCreatedEventId] = useState<number>();
+  const [pkUid, setPkUid] = useState<string>();
+  const address = useAddress();
 
   const loading = useMemo(() => {
     return generatingVk || makingTx;
   }, [generatingVk, makingTx]);
 
+  useEffect(() => {
+    const eventManager = getEventManagerContract();
+    if (!eventManager) throw "error: contract can't found";
+    const filters = eventManager?.filters.CreatedEventId(address, null);
+    eventManager.on(filters, (_, _eventId: BigNumber) => {
+      setCreatedEventId(_eventId.toNumber());
+    });
+
+    return () => {
+      eventManager.removeAllListeners("CreatedEventId");
+    };
+  }, []);
+
+  useEffect(() => {
+    const finalize = async () => {
+      try {
+        if (status && createdEventId !== null) {
+          await createFirebaseRecord();
+          setMakingTx(false);
+        }
+      } catch (error: any) {
+        setErrors(error);
+      }
+    };
+    finalize();
+  }, [status, createdEventId]);
+
+  const createFirebaseRecord = async () => {
+    try {
+      await cloudfunctionClient.post(`/event/event`, {
+        eventId: createdEventId,
+        pkUid,
+      });
+      return;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const createEventRecord = async (params: ICreateEventRecordParams) => {
     setErrors(null);
     try {
       setGeneratingVk(true);
-      const { data } = await axios.get("/api/zk/generate-verification-keys");
-      console.log(data);
+      const data: { vk: any; uid: string } = await cloudfunctionClient.get(
+        `/zk/generate-keys?passphrase=${params.secretPhrase}`
+      );
+      setPkUid(data.uid);
       setGeneratingVk(false);
       const { ethereum } = window;
       const eventManager = getEventManagerContract({ signin: true });
@@ -236,7 +288,6 @@ export const useCreateEventRecord = () => {
         }
       );
       await tx.wait();
-      setMakingTx(false);
       setStatus(true);
     } catch (e: any) {
       console.log(e);

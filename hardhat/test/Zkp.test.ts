@@ -55,10 +55,12 @@ describe("ZKP", () => {
     const zokratesProvider = await createProvider();
     const [hash1, hash2] = await generateHash("12", "12", "12", "12");
 
+    console.log(new Date(), "start to create checkhash artifact");
     const checkHashArtifacts_organizer = await createHashCheckArtifacts(
       hash1,
       hash2
     );
+    console.log(new Date(), "start to create keypair");
     const keypair = zokratesProvider.setup(
       checkHashArtifacts_organizer.program
     );
@@ -66,6 +68,7 @@ describe("ZKP", () => {
     const vk: any = keypair.vk;
     const pk: any = keypair.pk;
 
+    console.log(new Date(), "start to create contract");
     const verifierContractFactory = await ethers.getContractFactory(
       "ZkVerifier"
     );
@@ -74,25 +77,25 @@ describe("ZKP", () => {
 
     await verifierContract.setVerifyingKeyPoint(vk, 1);
 
-    // 参加者
-    const [hash3, hash4] = await generateHash("12", "12", "12", "12");
+    console.log(new Date(), "finish organizer");
 
+    // 参加者
     const checkHashArtifacts_participant = await createHashCheckArtifacts(
       hash1,
       hash2
     );
-    const keypair2 = zokratesProvider.setup(
-      checkHashArtifacts_organizer.program
-    );
+    console.log(new Date(), "start to create witness");
     const { witness } = zokratesProvider.computeWitness(
       checkHashArtifacts_participant,
       ["12", "12", "12", "12"]
     );
+    console.log(new Date(), "start to create proof");
     const proof: any = zokratesProvider.generateProof(
       checkHashArtifacts_participant.program,
       witness,
       keypair.pk
     );
+    console.log(new Date(), "finish to create proof");
     let result = await verifierContract.verify(proof.proof, 1);
     expect(result).equal(true);
     const record = await verifierContract.recordUsedProof(proof.proof, 1);
