@@ -218,22 +218,18 @@ export const useCreateEventRecord = () => {
     if (!eventManager) throw "error: contract can't found";
     const filters = eventManager?.filters.CreatedEventId(address, null);
     eventManager.on(filters, async (_, _eventId: BigNumber) => {
-      console.log(_eventId.toNumber());
-      if (status) {
-        console.log(_eventId.toNumber());
-        setCreatedEventId(_eventId.toNumber());
-        await cloudfunctionClient.post(`/event/event`, {
-          eventId: _eventId.toNumber(),
-          pkUid,
-        });
-        setMakingTx(false);
-      }
+      setCreatedEventId(_eventId.toNumber());
+      await cloudfunctionClient.post(`/event/event`, {
+        eventId: _eventId.toNumber(),
+        pkUid,
+      });
+      setMakingTx(false);
     });
 
     return () => {
       eventManager.removeAllListeners("CreatedEventId");
     };
-  }, [status]);
+  }, []);
 
   const createEventRecord = async (params: ICreateEventRecordParams) => {
     setErrors(null);
