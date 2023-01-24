@@ -221,7 +221,7 @@ export const useCreateEventRecord = () => {
       setCreatedEventId(_eventId.toNumber());
       await cloudfunctionClient.post(`/event/event`, {
         eventId: _eventId.toNumber(),
-        pkUid,
+        pkUid: pkUid,
       });
       setMakingTx(false);
     });

@@ -58,7 +58,7 @@ const CreateEventButton: FC<Props> = ({
             Making Transaction
           </Box>
 
-          {eventId && (
+          {eventId && !isSubmitting && (
             <>
               <Link href={`/events/${eventId}`}>
                 <Button mt={5} backgroundColor="mint.bg" width="full" size="lg">
