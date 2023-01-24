@@ -224,7 +224,7 @@ export const useCreateEventRecord = () => {
     return () => {
       eventManager.removeAllListeners("CreatedEventId");
     };
-  }, [pkUid]);
+  }, []);
 
   useEffect(() => {
     const setPkUid = async () => {
@@ -235,7 +235,7 @@ export const useCreateEventRecord = () => {
       });
       setMakingTx(false);
     };
-    setPkUid;
+    setPkUid();
   }, [createdEventId, pkUid]);
 
   const createEventRecord = async (params: ICreateEventRecordParams) => {
