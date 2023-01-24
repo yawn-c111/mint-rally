@@ -219,17 +219,24 @@ export const useCreateEventRecord = () => {
     const filters = eventManager?.filters.CreatedEventId(address, null);
     eventManager.on(filters, async (_, _eventId: BigNumber) => {
       setCreatedEventId(_eventId.toNumber());
-      await cloudfunctionClient.post(`/event/event`, {
-        eventId: _eventId.toNumber(),
-        pkUid: pkUid,
-      });
-      setMakingTx(false);
     });
 
     return () => {
       eventManager.removeAllListeners("CreatedEventId");
     };
   }, [pkUid]);
+
+  useEffect(() => {
+    const setPkUid = async () => {
+      if (!createdEventId || !pkUid) return;
+      await cloudfunctionClient.post(`/event/event`, {
+        eventId: createdEventId,
+        pkUid: pkUid,
+      });
+      setMakingTx(false);
+    };
+    setPkUid;
+  }, [createdEventId, pkUid]);
 
   const createEventRecord = async (params: ICreateEventRecordParams) => {
     setErrors(null);
