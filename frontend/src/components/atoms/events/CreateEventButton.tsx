@@ -1,13 +1,5 @@
 import { CheckIcon } from "@chakra-ui/icons";
-import {
-  Box,
-  Button,
-  Link,
-  Spinner,
-  Text,
-  useDisclosure,
-} from "@chakra-ui/react";
-import { BigNumber } from "ethers";
+import { Box, Button, Link, Spinner, useDisclosure } from "@chakra-ui/react";
 import { FC, useEffect, useMemo } from "react";
 import ModalBase from "src/components/molecules/common/ModalBase";
 

@@ -229,7 +229,7 @@ export const useCreateEventRecord = () => {
     return () => {
       eventManager.removeAllListeners("CreatedEventId");
     };
-  }, []);
+  }, [pkUid]);
 
   const createEventRecord = async (params: ICreateEventRecordParams) => {
     setErrors(null);
