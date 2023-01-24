@@ -85,7 +85,6 @@ const CreateEventForm: FC = () => {
       `group${watch("eventGroupId")}`
     );
     if (!groupNFTAttributes) {
-      console.log("dont has group");
       setValue("nfts", [
         { name: "", requiredParticipateCount: 0, description: "", image: "" },
       ]);

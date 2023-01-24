@@ -217,11 +217,16 @@ export const useCreateEventRecord = () => {
     const eventManager = getEventManagerContract();
     if (!eventManager) throw "error: contract can't found";
     const filters = eventManager?.filters.CreatedEventId(address, null);
-    eventManager.on(filters, (_, _eventId: BigNumber) => {
+    eventManager.on(filters, async (_, _eventId: BigNumber) => {
       console.log(_eventId.toNumber());
       if (status) {
         console.log(_eventId.toNumber());
         setCreatedEventId(_eventId.toNumber());
+        await cloudfunctionClient.post(`/event/event`, {
+          eventId: _eventId.toNumber(),
+          pkUid,
+        });
+        setMakingTx(false);
       }
     });
 
@@ -229,32 +234,6 @@ export const useCreateEventRecord = () => {
       eventManager.removeAllListeners("CreatedEventId");
     };
   }, [status]);
-
-  useEffect(() => {
-    const finalize = async () => {
-      try {
-        if (createdEventId) {
-          await createFirebaseRecord();
-          setMakingTx(false);
-        }
-      } catch (error: any) {
-        setErrors(error);
-      }
-    };
-    finalize();
-  }, [createdEventId]);
-
-  const createFirebaseRecord = async () => {
-    try {
-      await cloudfunctionClient.post(`/event/event`, {
-        eventId: createdEventId,
-        pkUid,
-      });
-      return;
-    } catch (error) {
-      throw error;
-    }
-  };
 
   const createEventRecord = async (params: ICreateEventRecordParams) => {
     setErrors(null);

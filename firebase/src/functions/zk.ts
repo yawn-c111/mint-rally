@@ -19,7 +19,7 @@ const firestore = admin.firestore()
 //Routing
 export const zk = functions
   .region('asia-northeast1')
-  .runWith({ timeoutSeconds: 180, memory: '4GB' })
+  .runWith({ timeoutSeconds: 180, memory: '8GB' })
   .https.onRequest(async (request, response) =>
     cors(request, response, async () => {
       switch (request.path) {
