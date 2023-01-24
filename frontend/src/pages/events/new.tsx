@@ -16,7 +16,7 @@ const EventCreate: NextPage = () => {
 
   return (
     <>
-      <Container maxW={800} py={6}>
+      <Container maxW={800} py={6} pb={20}>
         <Heading as="h1" mb={10}>
           {t.CREATE_NEW_EVENT}
         </Heading>

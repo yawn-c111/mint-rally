@@ -69,6 +69,8 @@ export const getMintNFTManagerContract = (config = { signin: false }) => {
 export const useMintParticipateNFT = (event: IEventRecord | null) => {
   const [errors, setErrors] = useState<Error | null>(null);
   const [loading, setLoading] = useState(false);
+  const [generatingProof, setGeneratingProof] = useState(false);
+  const [makingTx, setMakingTx] = useState(false);
   const [status, setStatus] = useState(false);
   const [mintedNftImageURL, setMintedNftImageLink] = useState<string | null>(
     null
@@ -166,14 +168,17 @@ export const useMintParticipateNFT = (event: IEventRecord | null) => {
           throw new Error("Cannot find mintNFTManager contract");
 
         setLoading(true);
+        setGeneratingProof(true);
         const proof = await cloudfunctionClient.get(
           `/zk/generate-proof?passPhrase=${secretPhrase}&eventId=${event?.eventRecordId.toNumber()}`
         );
+        setGeneratingProof(false);
         const provider = new ethers.providers.Web3Provider(
           window.ethereum as any
         );
         const signer = provider.getSigner();
 
+        setMakingTx(true);
         await mintNFTManager.canMint(event?.eventRecordId.toNumber(), proof);
 
         if (mtx) {
@@ -181,16 +186,24 @@ export const useMintParticipateNFT = (event: IEventRecord | null) => {
         } else {
           await sendNormalTx(mintNFTManager, proof);
         }
+        setMakingTx(false);
         setStatus(true);
       } catch (e: any) {
-        console.log(e);
         setErrors(e.error?.data || e.message || "error occured");
         setLoading(false);
       }
     },
     [event]
   );
-  return { status, errors, loading, mintParticipateNFT, mintedNftImageURL };
+  return {
+    status,
+    errors,
+    loading,
+    mintParticipateNFT,
+    mintedNftImageURL,
+    generatingProof,
+    makingTx,
+  };
 };
 
 export const useGetOwnedNFTs = () => {

@@ -4,11 +4,11 @@
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "serve": "yarn run build && ./node_modules/.bin/firebase emulators:start",
+    "serve": "yarn run build && ./node_modules/.bin/firebase use --clear && ./node_modules/.bin/firebase emulators:start",
     "shell": "yarn run build && ./node_modules/.bin/firebase functions:shell",
     "start": "yarn run shell",
     "deploy:prd": "./node_modules/.bin/firebase use prd && ./node_modules/.bin/firebase deploy --only functions",
-    "deploy:stg": "./node_modules/.bin/firebase use stg && ./node_modules/.bin/firebase deploy --only functions",
+    "deploy:stg": "./node_modules/.bin/firebase use mintrallystg-e1bc4 && ./node_modules/.bin/firebase deploy --only functions",
     "logs": "./node_modules/.bin/firebase functions:log",
     "fix": "mkdir dist/node_modules/.bin && cp -r node_modules/.bin/firebase-functions dist/node_modules/.bin && cp -rfu node_modules/firebase-functions/ dist/node_modules"
   },

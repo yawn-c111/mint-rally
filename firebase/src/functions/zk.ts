@@ -14,13 +14,12 @@ import { Request, Response } from 'firebase-functions'
 import { cors } from '../utils/cors'
 const nodezip = require('node-zip')
 
-admin.initializeApp()
 const firestore = admin.firestore()
 
 //Routing
 export const zk = functions
   .region('asia-northeast1')
-  .runWith({ timeoutSeconds: 120, memory: '512MB' })
+  .runWith({ timeoutSeconds: 180, memory: '4GB' })
   .https.onRequest(async (request, response) =>
     cors(request, response, async () => {
       switch (request.path) {

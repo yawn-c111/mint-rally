@@ -4,6 +4,7 @@ import { v4 } from 'uuid'
 import { Request, Response } from 'firebase-functions'
 import { recoverPersonalSignature } from '@metamask/eth-sig-util'
 import { cors } from '../utils/cors'
+import { parseToken } from '../utils/auth'
 
 export const auth = functions
   .region('asia-northeast1')
@@ -15,6 +16,9 @@ export const auth = functions
           return
         case '/verify-sign':
           await verifySign(request, response)
+          return
+        case '/verify-idToken':
+          await verifyIdToken(request, response)
           return
         default:
           response.status(404).send('not found')
@@ -87,6 +91,21 @@ const verifySign = async (request: Request, response: Response) => {
       response.sendStatus(404)
       return
     }
+  } catch (error) {
+    response.status(503).send(error)
+    return
+  }
+}
+
+const verifyIdToken = async (request: Request, response: Response) => {
+  if (request.method !== 'GET') {
+    response.sendStatus(404)
+    return
+  }
+
+  try {
+    const userId = await parseToken(request)
+    response.status(200).send({ userId })
   } catch (error) {
     response.status(503).send(error)
     return

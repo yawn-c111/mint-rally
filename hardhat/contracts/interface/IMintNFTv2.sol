@@ -29,7 +29,6 @@ interface IMintNFTv2 {
     function setEventInfo(
         uint256 _eventId,
         uint256 _mintLimit,
-        IZkVerifier.VerifyingKeyPoint memory _verifyingKeyPoint,
         NFTAttribute[] memory attributes
     ) external;
 

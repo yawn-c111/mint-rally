@@ -1,5 +1,4 @@
 import { CalendarIcon, HamburgerIcon, SettingsIcon } from "@chakra-ui/icons";
-
 import {
   Box,
   Button,
@@ -13,89 +12,16 @@ import {
   Spacer,
   useDisclosure,
 } from "@chakra-ui/react";
-import {
-  useAddress,
-  useChainId,
-  useDisconnect,
-  useMetamask,
-} from "@thirdweb-dev/react";
 import NextLink from "next/link";
-
 import router from "next/router";
 import Image from "next/image";
-import { switchNetwork } from "./atoms/web3/LoginRequired";
 import { useLocale } from "../hooks/useLocale";
 import LocaleSelector from "./atoms/LocaleSelector";
+import Web3WalletLogin from "./atoms/web3/Web3WalletLogin";
 
 const Navbar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const address = useAddress();
-  const chainId = useChainId();
-  const connectWithMetamask = useMetamask();
-  const disconnectWallet = useDisconnect();
-  const requiredChainId = +process.env.NEXT_PUBLIC_CHAIN_ID!;
   const { t } = useLocale();
-
-  const MetamaskLogin = () => {
-    return (
-      <Flex justifyContent="center" alignItems="center" mt={{ base: 5, md: 0 }}>
-        {address ? (
-          <>
-            {chainId !== requiredChainId ? (
-              <Box pr={4}>
-                <Button
-                  bg="mint.subtle"
-                  color="mint.font"
-                  borderRadius={"16px"}
-                  variant="solid"
-                  onClick={switchNetwork}
-                  size="md"
-                >
-                  {t.SWITCH_NETWORK}
-                </Button>
-              </Box>
-            ) : (
-              <></>
-            )}
-            <Button
-              bg="mint.subtle"
-              color="mint.font"
-              borderRadius={"16px"}
-              variant="solid"
-              onClick={disconnectWallet}
-              size="md"
-            >
-              {t.SIGN_OUT}
-            </Button>
-          </>
-        ) : (
-          <Button
-            bg="mint.subtle"
-            color="mint.font"
-            borderRadius={"16px"}
-            variant="solid"
-            onClick={connectWithMetamask}
-            size="md"
-          >
-            {t.SIGN_IN}
-          </Button>
-        )}
-        {address && (
-          <Box marginLeft={3} cursor="pointer">
-            <Link href="/users/me">
-              <Image
-                src="/user.png"
-                alt="Loggedin"
-                width={50}
-                height={50}
-                objectFit="contain"
-              />
-            </Link>
-          </Box>
-        )}
-      </Flex>
-    );
-  };
 
   return (
     <>
@@ -176,7 +102,7 @@ const Navbar = () => {
           </a>
           <LocaleSelector></LocaleSelector>
           <Box px={4}>
-            <MetamaskLogin></MetamaskLogin>
+            <Web3WalletLogin />
           </Box>
         </Flex>
 
@@ -211,7 +137,7 @@ const Navbar = () => {
               </a>
 
               <LocaleSelector></LocaleSelector>
-              <MetamaskLogin></MetamaskLogin>
+              <Web3WalletLogin />
             </DrawerBody>
           </DrawerContent>
         </DrawerOverlay>

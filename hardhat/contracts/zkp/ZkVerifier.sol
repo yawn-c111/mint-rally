@@ -1,22 +1,32 @@
 //SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.4;
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../lib/Pairing.sol";
 import "../lib/Hashing.sol";
 import "../interface/IZkVerifier.sol";
-import "hardhat/console.sol";
 
-contract ZkVerifier {
+contract ZkVerifier is Ownable {
     using Pairing for *;
 
     mapping(uint256 => IZkVerifier.VerifyingKeyPoint)
         internal verifyingKeyPoint;
     mapping(uint256 => mapping(bytes32 => bool)) internal usedProof;
 
+    address private immutable eventManagerAddr;
+
+    constructor(address _eventManagerAddr) {
+        eventManagerAddr = _eventManagerAddr;
+    }
+
     function setVerifyingKeyPoint(
         IZkVerifier.VerifyingKeyPoint calldata _verifyingKeyPoint,
         uint256 _eventId
     ) external {
+        require(
+            msg.sender == eventManagerAddr || msg.sender == owner(),
+            "ZkVerifier: no access right"
+        );
         verifyingKeyPoint[_eventId] = _verifyingKeyPoint;
     }
 

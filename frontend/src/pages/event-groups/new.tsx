@@ -18,7 +18,6 @@ import { Controller, useFieldArray, useForm } from "react-hook-form";
 import ErrorMessage from "../../components/atoms/form/ErrorMessage";
 import NFTAttributesForm from "../../components/organisms/NFTAttributesForm";
 import { ipfsUploader } from "src/libs/libIpfs";
-import { useFirebaseAuth } from "src/hooks/useFirebase";
 
 export interface EventGroupFormData {
   groupName: string;
@@ -63,8 +62,6 @@ const NewEventGroupPage: NextPage = () => {
 
   const { remove, append } = useFieldArray({ control, name: "nfts" });
 
-  const { signinWithMetamask } = useFirebaseAuth();
-
   const submit = async (data: EventGroupFormData) => {
     const uploadResult = await uploader.uploadNFTsToIpfs(data.nfts);
 
@@ -92,7 +89,6 @@ const NewEventGroupPage: NextPage = () => {
         forbiddenText={t.PLEASE_SIGN_IN}
       >
         <>
-          <Button onClick={() => signinWithMetamask()}>FirebaseLogin</Button>
           {!status ? (
             <form onSubmit={handleSubmit(submit)}>
               <Heading as="h2" fontSize="xl" mb={4}>

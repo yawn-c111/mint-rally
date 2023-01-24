@@ -61,7 +61,7 @@ export const deployv2 = async (
 
   //Deploy ZkVerifier
   const ZkVerifierFactory = await ethers.getContractFactory("ZkVerifier");
-  const ZkVerifier = await ZkVerifierFactory.deploy();
+  const ZkVerifier = await ZkVerifierFactory.deploy(eventManagerAddr);
   await ZkVerifier.deployed();
   zkVerifier = ZkVerifier;
 
@@ -85,6 +85,7 @@ export const deployv2 = async (
   );
   await EventManagerv2.deployed();
   eventManagerv2 = EventManagerv2;
+  await eventManagerv2.initialize(zkVerifier.address);
 
   return { mintNFTv2, eventManagerv2, zkVerifier };
 };

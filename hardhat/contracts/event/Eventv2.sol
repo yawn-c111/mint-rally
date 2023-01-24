@@ -28,15 +28,22 @@ contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
     uint256 internal mtxPrice;
     // max mint limit
     uint256 internal maxMintLimit;
+    // zkVerifierAddress
+    address private zkVerifierAddress;
 
     function setMintNFTAddr(address _mintNftAddr) public onlyOwner {
-        require(_mintNftAddr != address(0), "mint nft address is blank");
+        require(_mintNftAddr != address(0), "Eventv2: address is blank");
         mintNFTAddr = _mintNftAddr;
     }
 
     function setRelayerAddr(address _relayerAddr) public onlyOwner {
-        require(_relayerAddr != address(0), "relayer address is blank");
+        require(_relayerAddr != address(0), "Eventv2: address is blank");
         relayerAddr = _relayerAddr;
+    }
+
+    function setZkVerifier(address _addr) public onlyOwner {
+        require(_addr != address(0), "Eventv2: address is blank");
+        zkVerifierAddress = _addr;
     }
 
     function setMtxPrice(uint256 _price) public onlyOwner {
@@ -44,21 +51,12 @@ contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
     }
 
     function setMaxMintLimit(uint256 _mintLimit) public onlyOwner {
-        require(_mintLimit != 0, "mint limit is 0");
+        require(_mintLimit != 0, "Eventv2: mint limit is 0");
         maxMintLimit = _mintLimit;
     }
 
-    function initialize(
-        address _relayerAddr,
-        uint256 _mtxPrice,
-        uint256 _maxMintLimit
-    ) public initializer {
-        __Ownable_init();
-        _groupIds.increment();
-        _eventRecordIds.increment();
-        setRelayerAddr(_relayerAddr);
-        setMtxPrice(_mtxPrice);
-        setMaxMintLimit(_maxMintLimit);
+    function initialize(address _zkVerifierAddress) public reinitializer(2) {
+        setZkVerifier(_zkVerifierAddress);
     }
 
     function createGroup(string memory _name) external {
@@ -117,7 +115,7 @@ contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
     ) external payable {
         require(
             _mintLimit > 0 && _mintLimit <= maxMintLimit,
-            "mint limit is invalid"
+            "Eventv2: mint limit is invalid"
         );
 
         bool _isGroupOwner = false;
@@ -126,13 +124,13 @@ contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
                 _isGroupOwner = true;
             }
         }
-        require(_isGroupOwner, "You are not group owner");
+        require(_isGroupOwner, "Eventv2: You are not group owner");
 
         if (_useMtx) {
             uint256 depositPrice = (_mintLimit * tx.gasprice * mtxPrice);
-            require(msg.value >= depositPrice, "Not enough value");
+            require(msg.value >= depositPrice, "Eventv2: Not enough value");
             (bool success, ) = (relayerAddr).call{value: msg.value}("");
-            require(success, "transfer failed");
+            require(success, "Eventv2: transfer failed");
         }
 
         uint256 _newEventId = _eventRecordIds.current();
@@ -149,18 +147,32 @@ contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
             })
         );
 
+        IZkVerifier _zkVerifier = IZkVerifier(zkVerifierAddress);
+        _zkVerifier.setVerifyingKeyPoint(_verifyingKeyPoint, _newEventId);
+
         IMintNFTv2 _mintNFT = IMintNFTv2(mintNFTAddr);
-        _mintNFT.setEventInfo(
-            _newEventId,
-            _mintLimit,
-            _verifyingKeyPoint,
-            _eventNFTAttributes
-        );
+        _mintNFT.setEventInfo(_newEventId, _mintLimit, _eventNFTAttributes);
 
         eventIdsByGroupId[_groupId].push(_newEventId);
         groupIdByEventId[_newEventId] = _groupId;
 
         emit CreatedEventId(msg.sender, _newEventId);
+    }
+
+    function updateEventVerifingKeyPoint(
+        uint256 _eventId,
+        IZkVerifier.VerifyingKeyPoint memory _verifyingKeyPoint
+    ) external {
+        uint256 groupId = groupIdByEventId[_eventId];
+        bool _isGroupOwner = false;
+        for (uint256 _i = 0; _i < ownGroupIds[msg.sender].length; _i++) {
+            if (ownGroupIds[msg.sender][_i] == groupId) {
+                _isGroupOwner = true;
+            }
+        }
+        require(_isGroupOwner, "Eventv2: You are not group owner");
+        IZkVerifier _zkVerifier = IZkVerifier(zkVerifierAddress);
+        _zkVerifier.setVerifyingKeyPoint(_verifyingKeyPoint, _eventId);
     }
 
     function getEventRecords() public view returns (EventRecord[] memory) {
@@ -174,7 +186,7 @@ contract EventManagerv2 is OwnableUpgradeable, IEventManagerv2 {
     }
 
     function getEventById(uint256 _eventId)
-        external
+        public
         view
         returns (EventRecord memory)
     {

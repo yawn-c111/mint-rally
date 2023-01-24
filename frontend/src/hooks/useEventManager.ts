@@ -218,18 +218,22 @@ export const useCreateEventRecord = () => {
     if (!eventManager) throw "error: contract can't found";
     const filters = eventManager?.filters.CreatedEventId(address, null);
     eventManager.on(filters, (_, _eventId: BigNumber) => {
-      setCreatedEventId(_eventId.toNumber());
+      console.log(_eventId.toNumber());
+      if (status) {
+        console.log(_eventId.toNumber());
+        setCreatedEventId(_eventId.toNumber());
+      }
     });
 
     return () => {
       eventManager.removeAllListeners("CreatedEventId");
     };
-  }, []);
+  }, [status]);
 
   useEffect(() => {
     const finalize = async () => {
       try {
-        if (status && createdEventId !== null) {
+        if (createdEventId) {
           await createFirebaseRecord();
           setMakingTx(false);
         }
@@ -238,7 +242,7 @@ export const useCreateEventRecord = () => {
       }
     };
     finalize();
-  }, [status, createdEventId]);
+  }, [createdEventId]);
 
   const createFirebaseRecord = async () => {
     try {
@@ -290,13 +294,20 @@ export const useCreateEventRecord = () => {
       await tx.wait();
       setStatus(true);
     } catch (e: any) {
-      console.log(e);
       setErrors(e.error?.data || "error occured");
       setGeneratingVk(false);
       setMakingTx(false);
     }
   };
-  return { status, errors, loading, generatingVk, makingTx, createEventRecord };
+  return {
+    status,
+    errors,
+    loading,
+    generatingVk,
+    makingTx,
+    createEventRecord,
+    createdEventId,
+  };
 };
 
 /**

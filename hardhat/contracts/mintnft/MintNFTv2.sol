@@ -149,13 +149,10 @@ contract MintNFTv2 is
     function setEventInfo(
         uint256 _eventId,
         uint256 _mintLimit,
-        IZkVerifier.VerifyingKeyPoint memory _verifyingKeyPoint,
         IMintNFTv2.NFTAttribute[] memory attributes
     ) external override {
         require(_msgSender() == eventManagerAddr, "MintNFT: unauthorized");
         remainingEventNftCount[_eventId] = _mintLimit;
-        IZkVerifier _zkVerifier = IZkVerifier(zkVerifierAddress);
-        _zkVerifier.setVerifyingKeyPoint(_verifyingKeyPoint, _eventId);
         for (uint256 index = 0; index < attributes.length; index++) {
             eventNftAttributes[
                 Hashing.hashingDoubleUint256(

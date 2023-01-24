@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { initialize } from "zokrates-js";
 import { ethers } from "hardhat";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 const createProvider = async () => {
   const zokratesDefaultProvider = await initialize();
@@ -50,17 +51,23 @@ const createHashCheckArtifacts = async (hash1: string, hash2: string) => {
 };
 
 describe("ZKP", () => {
+  let deployer!: SignerWithAddress;
+  let fakeUser!: SignerWithAddress;
+  let fakeMintNFT!: SignerWithAddress;
+
+  before(async () => {
+    [deployer, fakeUser, fakeMintNFT] = await ethers.getSigners();
+  });
+
   it("verify", async () => {
     // 主催者
     const zokratesProvider = await createProvider();
     const [hash1, hash2] = await generateHash("12", "12", "12", "12");
 
-    console.log(new Date(), "start to create checkhash artifact");
     const checkHashArtifacts_organizer = await createHashCheckArtifacts(
       hash1,
       hash2
     );
-    console.log(new Date(), "start to create keypair");
     const keypair = zokratesProvider.setup(
       checkHashArtifacts_organizer.program
     );
@@ -68,34 +75,35 @@ describe("ZKP", () => {
     const vk: any = keypair.vk;
     const pk: any = keypair.pk;
 
-    console.log(new Date(), "start to create contract");
     const verifierContractFactory = await ethers.getContractFactory(
       "ZkVerifier"
     );
-    const verifierContract = await verifierContractFactory.deploy();
+    const verifierContract = await verifierContractFactory
+      .connect(deployer)
+      .deploy(fakeMintNFT.address);
     await verifierContract.deployed();
 
-    await verifierContract.setVerifyingKeyPoint(vk, 1);
+    await verifierContract.connect(deployer).setVerifyingKeyPoint(vk, 1);
+    await verifierContract.connect(fakeMintNFT).setVerifyingKeyPoint(vk, 1);
 
-    console.log(new Date(), "finish organizer");
+    await expect(
+      verifierContract.connect(fakeUser).setVerifyingKeyPoint(vk, 1)
+    ).revertedWith("ZkVerifier: no access right");
 
     // 参加者
     const checkHashArtifacts_participant = await createHashCheckArtifacts(
       hash1,
       hash2
     );
-    console.log(new Date(), "start to create witness");
     const { witness } = zokratesProvider.computeWitness(
       checkHashArtifacts_participant,
       ["12", "12", "12", "12"]
     );
-    console.log(new Date(), "start to create proof");
     const proof: any = zokratesProvider.generateProof(
       checkHashArtifacts_participant.program,
       witness,
       keypair.pk
     );
-    console.log(new Date(), "finish to create proof");
     let result = await verifierContract.verify(proof.proof, 1);
     expect(result).equal(true);
     const record = await verifierContract.recordUsedProof(proof.proof, 1);

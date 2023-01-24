@@ -27,6 +27,7 @@ describe("EventManagerv2", () => {
   let eventManagerv2!: EventManagerv2;
   let organizer!: SignerWithAddress;
   let relayer!: SignerWithAddress;
+  let fakeUser!: SignerWithAddress;
 
   const groupName1 = "test1";
   const eventInfo1 = {
@@ -48,7 +49,7 @@ describe("EventManagerv2", () => {
   };
 
   before(async () => {
-    [organizer, relayer] = await ethers.getSigners();
+    [organizer, relayer, fakeUser] = await ethers.getSigners();
   });
 
   it("set data with v1", async () => {
@@ -135,5 +136,13 @@ describe("EventManagerv2", () => {
     expect(eventsList[1].description).equal(eventInfo2.description);
     expect(eventsList[1].date).equal(eventInfo2.date);
     expect(eventsList[1].useMtx).equal(eventInfo2.mtx);
+  });
+
+  it("update verifing key points", async () => {
+    const { vk } = await generateZkKeys("1", "1", "1", "2");
+    await eventManagerv2.connect(organizer).updateEventVerifingKeyPoint(2, vk);
+    await expect(
+      eventManagerv2.connect(fakeUser).updateEventVerifingKeyPoint(2, vk)
+    ).revertedWith("Eventv2: You are not group owner");
   });
 });

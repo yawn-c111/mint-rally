@@ -14,17 +14,12 @@ async function v2() {
     EventManager,
   } = require("./deployed_contract_addr.json");
 
-  const ZkVerifierFactory = await ethers.getContractFactory("ZkVerifier");
-  const deployedZkVerifier = await ZkVerifierFactory.deploy();
-  await deployedZkVerifier.deployed();
-
   const MintNFTv2Factory = await ethers.getContractFactory("MintNFTv2");
   const deployedMintNFTv2: any = await upgrades.upgradeProxy(
     MintNFT,
     MintNFTv2Factory
   );
   await deployedMintNFTv2.deployed();
-  await deployedMintNFTv2.initialize(deployedZkVerifier.address);
 
   const EventManagerv2Factory = await ethers.getContractFactory(
     "EventManagerv2"
@@ -34,6 +29,15 @@ async function v2() {
     EventManagerv2Factory
   );
   await deployedEventManagerv2.deployed();
+
+  const ZkVerifierFactory = await ethers.getContractFactory("ZkVerifier");
+  const deployedZkVerifier = await ZkVerifierFactory.deploy(
+    deployedEventManagerv2.address
+  );
+  await deployedZkVerifier.deployed();
+
+  await deployedMintNFTv2.initialize(deployedZkVerifier.address);
+  await deployedEventManagerv2.initialize(deployedZkVerifier.address);
 
   writeFileSync(
     "./scripts/local/deployed_contract_addr.json",

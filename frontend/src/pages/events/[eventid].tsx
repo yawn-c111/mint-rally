@@ -48,6 +48,8 @@ const Event = () => {
     loading: mintLoading,
     mintedNftImageURL,
     mintParticipateNFT,
+    makingTx,
+    generatingProof,
   } = useMintParticipateNFT(event);
 
   useEffect(() => {
@@ -165,6 +167,12 @@ const Event = () => {
                   <AlertIcon />
                   <AlertTitle>Error occurred</AlertTitle>
                   <AlertDescription>{mintErrors.message}</AlertDescription>
+                </Alert>
+              )}
+              {generatingProof && (
+                <Alert status="success" mt={3}>
+                  <AlertIcon />
+                  <AlertTitle>Generating Verification Key</AlertTitle>
                 </Alert>
               )}
               {mintStatus && !mintedNftImageURL && (

@@ -32,6 +32,7 @@ import { useLocale } from "../../hooks/useLocale";
 import Link from "next/link";
 import NFTAttributesForm from "./NFTAttributesForm";
 import { useIpfs } from "src/hooks/useIpfs";
+import CreateEventButton from "../atoms/events/CreateEventButton";
 
 interface EventFormData {
   eventGroupId: string;
@@ -48,7 +49,12 @@ interface EventFormData {
 
 const CreateEventForm: FC = () => {
   const { t } = useLocale();
-  const { loading, errors, nftAttributes, saveNFTMetadataOnIPFS } = useIpfs();
+  const {
+    loading: uploadingMetadata,
+    errors,
+    nftAttributes,
+    saveNFTMetadataOnIPFS,
+  } = useIpfs();
   const [formData, setFormData] = useState<EventFormData | null>(null);
   const {
     control,
@@ -98,6 +104,7 @@ const CreateEventForm: FC = () => {
     generatingVk,
     makingTx,
     createEventRecord,
+    createdEventId,
   } = useCreateEventRecord();
 
   const onSubmit = async (data: EventFormData) => {
@@ -391,20 +398,14 @@ const CreateEventForm: FC = () => {
                 />
               </Box>
 
-              <Button
-                mt={10}
-                type="submit"
-                isLoading={isSubmitting}
-                backgroundColor="mint.bg"
-                size="lg"
-                width="full"
-                disabled={isSubmitting || status}
-              >
-                {createLoading ? <Spinner /> : status ? "Success" : "Create"}
-              </Button>
-              {generatingVk && "Generating VK"}
-              {makingTx && "Making Tx"}
-              {status && "Your Event Created!🎉"}
+              <CreateEventButton
+                uploadingMetadata={uploadingMetadata}
+                generatingVk={generatingVk}
+                makingTx={makingTx}
+                success={status ? true : false}
+                eventId={createdEventId}
+              />
+
               {createError && (
                 <Alert status="error" mt={2}>
                   <AlertIcon />
